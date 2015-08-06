@@ -1,14 +1,13 @@
 #!/usr/bin/env python2
 
-from sqlalchemy import create_engine, ForeignKey
+from wikithingdb.engine import engine
+from sqlalchemy import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy import Column, Integer, String
 from sqlalchemy import Table, Text
 
 Base = declarative_base()
-
-engine = create_engine(
-    'mysql://root:@localhost/py_wikipedia', pool_recycle=3600)
 
 
 class Type(Base):
@@ -30,6 +29,9 @@ class WikiClass(Base):
     id = Column(Integer, primary_key=True)
     class_name = Column(String(50))
 
+    dbpedia_classes = relationship(
+        'DbpediaClass', secondary=hypernyms, backref='classes')
+
     def __init__(self, class_name):
         self.class_name = class_name
 
@@ -43,12 +45,14 @@ class DbpediaClass(Base):
     id = Column(Integer, primary_key=True)
     dpedia_class = Column(String(50))
 
+    classes = relationship(
+        'DbpediaClass', secondary=hypernyms, backref='dbpedia_classes')
+
     def __init__(self, dpedia_class):
         self.dpedia_class = dpedia_class
 
     def __repr__(self):
         return '<DbpediaClass: %s>' % self.dpedia_class
-
 
 # article_classes = Table('article_classes', Base.metadata,
 #                         Column(
