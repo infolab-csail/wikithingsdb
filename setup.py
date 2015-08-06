@@ -15,9 +15,16 @@ setup(
         'SQLAlchemy',
         'MySQL-python',
         'nltk',
-        'wikiscout'
+        'wikiscout',
+        'wikimap'
     ],
     dependency_links=[
-        'git+https://github.com/alvaromorales/wikiscout.git#egg=wikiscout'
-    ]
+        'git+https://github.com/alvaromorales/wikiscout.git#egg=wikiscout',
+        'git+https://github.com/michaelsilver/wikimap.git#egg=wikimap'
+    ],
+    entry_points={
+        'console_scripts': [
+            'wikithingsdb = wikithingsdb.create:main'
+        ],
+    },
 )
