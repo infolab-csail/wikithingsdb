@@ -6,7 +6,7 @@ setup(
     description='A DB of Synonyms, Paraphrases, and Hypernyms for all Wiki Articles',
     author='Michael Silver',
     author_email='msilver@csail.mit.edu',
-    url='https://github.com/michaelsilver/wikithingsdb',
+    url='https://github.com/infolab-csail/wikithingsdb.git',
     packages=[
         'wikithingsdb',
         'defexpand'
