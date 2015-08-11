@@ -16,11 +16,13 @@ setup(
         'MySQL-python',
         'nltk',
         'wikiscout',
-        'wikimap'
+        'wikimap',
+        'defexpand'
     ],
     dependency_links=[
         'git+https://github.com/alvaromorales/wikiscout.git#egg=wikiscout',
-        'git+https://github.com/michaelsilver/wikimap.git#egg=wikimap'
+        'git+https://github.com/infolab-csail/wikimap.git#egg=wikimap',
+        'git+https://github.com/infolab-csail/defexpand.git#egg=defexpand'
     ],
     entry_points={
         'console_scripts': [
