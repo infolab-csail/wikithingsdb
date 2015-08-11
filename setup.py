@@ -8,8 +8,7 @@ setup(
     author_email='msilver@csail.mit.edu',
     url='https://github.com/infolab-csail/wikithingsdb.git',
     packages=[
-        'wikithingsdb',
-        'defexpand'
+        'wikithingsdb'
     ],
     install_requires=[
         'SQLAlchemy',
