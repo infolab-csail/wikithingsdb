@@ -3,8 +3,8 @@
 import argparse
 from wikimap import data
 from defexpand import infoclass
-from wikithingdb.engine import engine
-from wikithingdb import models
+from wikithingsdb.engine import engine
+from wikithingsdb import models
 from sqlalchemy.orm import sessionmaker
 
 Session = sessionmaker(bind=engine)
