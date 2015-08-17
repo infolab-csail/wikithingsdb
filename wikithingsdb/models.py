@@ -1,13 +1,40 @@
 #!/usr/bin/env python2
 
-from wikithingdb.engine import engine
+from wikithingsdb.engine import engine
 from sqlalchemy import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy import Column, Integer, String
 from sqlalchemy import Table, Text
 
 Base = declarative_base()
+AutomapBase = automap_base()
+
+AutomapBase.prepare(engine, reflect=True)
+
+
+article_types = Table('article_types', Base.metadata,
+                      Column(
+                          'p_id', Integer, ForeignKey('page.page_id')),
+                      Column('t_id', Integer, ForeignKey('types.id'))
+                      )
+
+article_classes = Table('article_classes', Base.metadata,
+                        Column(
+                            'p_id', Integer, ForeignKey('page.page_id')),
+                        Column('c_id', Integer, ForeignKey('classes.id'))
+                        )
+
+
+hypernyms = Table('hypernyms', Base.metadata,
+                  Column('c_id', Integer, ForeignKey('classes.id')),
+                  Column('d_id', Integer, ForeignKey('dbpedia_classes.id'))
+                  )
+
+
+Page = AutomapBase.classes.page
+Redirect = AutomapBase.classes.redirect
 
 
 class Type(Base):
@@ -15,6 +42,9 @@ class Type(Base):
 
     id = Column(Integer, primary_key=True)
     type = Column(String(50))
+
+    page = relationship(
+        'Page', secondary=article_types, backref='types')
 
     def __init__(self, type):
         self.type = type
@@ -29,8 +59,8 @@ class WikiClass(Base):
     id = Column(Integer, primary_key=True)
     class_name = Column(String(50))
 
-    dbpedia_classes = relationship(
-        'DbpediaClass', secondary=hypernyms, backref='classes')
+    page = relationship(
+        'Page', secondary=article_classes, backref='classes')
 
     def __init__(self, class_name):
         self.class_name = class_name
@@ -53,25 +83,6 @@ class DbpediaClass(Base):
 
     def __repr__(self):
         return '<DbpediaClass: %s>' % self.dpedia_class
-
-# article_classes = Table('article_classes', Base.metadata,
-#                         Column(
-#                             'a_id', Integer, ForeignKey('page.page_id')),
-#                         Column('c_id', Integer, ForeignKey('classes.id'))
-#                         )
-
-
-hypernyms = Table('hypernyms', Base.metadata,
-                  Column('c_id', Integer, ForeignKey('classes.id')),
-                  Column('d_id', Integer, ForeignKey('dbpedia_classes.id'))
-                  )
-
-
-# article_types = Table('article_types', Base.metadata,
-#                       Column(
-#                           'a_id', Integer, ForeignKey('page.page_id')),
-#                       Column('t_id', Integer, ForeignKey('types.id'))
-#                       )
 
 
 Base.metadata.create_all(engine)
