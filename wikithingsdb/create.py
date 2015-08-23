@@ -11,29 +11,34 @@ Session = sessionmaker(bind=engine)
 
 
 # DB-INTERFACING
-def insert_article_wiki_classes(article, classes):
+def insert_article_wiki_classes(article, w_classes):
     """Given article (str) and classes (list of str), inserts into
     DB
     """
-    # TODO: how to deal with already existing page table?
-    # need to backreference page_id or something?
+    a = WikiClass(article)
+    for w_class in w_classes:
+        a.classes.append(WikiClass(w_class))
+    session.add(a)
+
 
 def insert_class_dbpedia_classes(w_class, dbp_classes):
     """Given class (str) and list of dbpedia_classes (list of str),
     insterts into DB
     """    
     wc = WikiClass(w_class)
-    session.add(wc)
     for dbp_class in dbp_classes:
         wc.dbpedia_classes.append(DbpediaClass(dbp_class))
+    session.add(wc)
 
 
-def insert_article_types(article, types):
+def insert_article_types(article, a_types):
     """Given article (str) and list of types (list of str), inserts
     into DB
     """
-    # TODO: how to deal with already existing page table?
-    # need to backreference page_id or something?
+    a = WikiClass(article)
+    for a_type in a_types:
+        a.types.append(Type(a_type))
+    session.add(a)
 
 
 # DATA RETRIEVAL
