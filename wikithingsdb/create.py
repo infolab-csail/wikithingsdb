@@ -72,9 +72,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("excel",
                         help="path to input excel of infobox templates")
+    parser.add_argument("extracted",
+                        help="path to WikiExtractor's extracted dir")
     args = parser.parse_args()
 
     get_all_class_hypernyms(data.get_infoboxes(args.excel))
+    get_all_article_classes(args.extracted)
 
     session.commit()
 
