@@ -1,61 +1,73 @@
 #!/usr/bin/env python2
 
-import os
 import argparse
-from wikimap import data
+from lxml import etree
+from unidecode import unidecode
 from defexpand import infoclass
+from nltk.tokenize import sent_tokenize
 from wikithingsdb.engine import engine
 from wikithingsdb import models
 from sqlalchemy.orm import sessionmaker
 
 Session = sessionmaker(bind=engine)
-title_infobox_re = re.compile(
-    "<doc.*?title\s*?=\s*?\"(.*?)\"\s*?infobox\s*?=\s*?\"(.*?)\".*?>")
 
 
 # DB-INTERFACING
-def insert_article_wiki_classes(article, w_classes):
+def insert_article_classes_types(article, w_classes, a_types):
     """Given article (str) and classes (list of str), inserts into
     DB
     """
-    a = WikiClass(article)
-    for w_class in w_classes:
-        a.classes.append(WikiClass(w_class))
-    session.add(a)
+    # a = WikiClass(article)
+    # for w_class in w_classes:
+    #     a.classes.append(WikiClass(w_class))
+    # for a_type in a_types:
+    #     a.types.append(Type(a_type))
+    # session.add(a)
+    print "ARTICLE-CLASSES-TYPES:"
+    print "article: " + article
+    print w_classes
+    print a_types
+    print "----------------------------------"
 
 
 def insert_class_dbpedia_classes(w_class, dbp_classes):
     """Given class (str) and list of dbpedia_classes (list of str),
     insterts into DB
-    """    
-    wc = WikiClass(w_class)
-    for dbp_class in dbp_classes:
-        wc.dbpedia_classes.append(DbpediaClass(dbp_class))
-    session.add(wc)
-
-
-def insert_article_types(article, a_types):
-    """Given article (str) and list of types (list of str), inserts
-    into DB
     """
-    a = WikiClass(article)
-    for a_type in a_types:
-        a.types.append(Type(a_type))
-    session.add(a)
+    # wc = WikiClass(w_class)
+    # for dbp_class in dbp_classes:
+    #     wc.dbpedia_classes.append(DbpediaClass(dbp_class))
+    # session.add(wc)
+    print "DBPEDIA-CLASSES:"
+    print "infobox: " + w_class
+    print dbp_classes
+    print "----------------------------------"
 
 
 # DATA RETRIEVAL
-def get_all_article_classes(extracted_dir):
-    for root, dirs, files in os.walk(extracted_dir):
-        for file in files:
-            with open(os.path.join(dirpath, file)) as f:
-                for line in f:
-                    result = title_infobox_re.match(line)
-                    if result:
-                        article = result.group(1)
-                        _boxes_str = result.group(2)
-                        infoboxes = [x.strip() for x in _boxes_str.split(",")]
-                        insert_article_wiki_classes(article, infoboxes)
+def get_all(merged_xml_path):
+    with open(merged_xml_path) as f:
+        for _, element in etree.iterparse(f, tag='doc'):
+            article = element.get("title")
+            infobox_str = element.get("infobox")
+            infoboxes = [x.strip() for x in infobox_str.split(",")]
+            _article_text = etree.tostring(
+                element, encoding='unicode', method="text")
+            _first_par = _article_text.split('\n')[3]
+            if _first_par:
+                sentence = sent_tokenize(_first_par)[0]
+                sentence = unidecode(sentence)
+            else:
+                sentence = ""
+
+            print "Article: " + article
+            print "Infoboxes: " + infobox_str
+            print "Sentence: " + sentence
+
+            # get_all_class_hypernyms(infoboxes)
+            # types = get_all_article_types(title, sentence)
+            # insert_article_classes_types(article, infoboxes, types)
+            element.clear()
 
 
 def get_all_class_hypernyms(infoboxes):
@@ -64,20 +76,19 @@ def get_all_class_hypernyms(infoboxes):
         insert_class_dbpedia_classes(infobox, hypernyms)
 
 
-def get_all_article_types():
+def get_all_article_types(title, sentence):
     # for each article, get types using Whoami (need a way to do this)
+    # return types
+    pass
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("excel",
-                        help="path to input excel of infobox templates")
-    parser.add_argument("extracted",
-                        help="path to WikiExtractor's extracted dir")
+    parser.add_argument("merged_xml",
+                        help="path to merged xml file made with merge_extracted.sh")
     args = parser.parse_args()
 
-    get_all_class_hypernyms(data.get_infoboxes(args.excel))
-    get_all_article_classes(args.extracted)
+    get_all(args.merged_xml)
 
     session.commit()
 
