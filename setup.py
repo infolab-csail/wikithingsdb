@@ -16,6 +16,7 @@ setup(
         'nltk',
         'unidecode',
         'lxml',
+        'requests',
         'defexpand'
     ],
     dependency_links=[
