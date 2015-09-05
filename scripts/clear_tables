@@ -1,0 +1,7 @@
+use py_wikipedia
+drop table article_classes;
+drop table article_types;
+drop table hypernyms;
+drop table classes;
+drop table types;
+drop table dbpedia_classes;
