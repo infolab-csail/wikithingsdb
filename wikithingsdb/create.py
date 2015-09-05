@@ -10,8 +10,10 @@ from wikithingsdb.engine import engine
 from wikithingsdb.models import Page, WikiClass, Type, DbpediaClass
 from wikithingsdb import config
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import exc
 
-session = sessionmaker(bind=engine)()
+Session = sessionmaker(bind=engine)
+session = Session()
 ontology = infoclass.get_info_ontology()
 _load_counter = 0
 
@@ -23,9 +25,9 @@ def insert_article_classes_types(article_id, w_classes, a_types):
     """
     a = session.query(Page).get(article_id)
     for w_class in w_classes:
-        a.classes.append(WikiClass(w_class))
+        a.classes.append(get_or_create(WikiClass, WikiClass.class_name, w_class))
     for a_type in a_types:
-        a.types.append(Type(a_type))
+        a.types.append(get_or_create(Type, Type.type, a_type))
 
     # print "ARTICLE-CLASSES-TYPES:"
     # print "article id: " + article_id
@@ -41,17 +43,28 @@ def insert_class_dbpedia_classes(hypernym_dict):
     insterts into DB
     """
     for w_class, dbp_classes in hypernym_dict.iteritems():
-        wc = WikiClass(w_class)
+        wc = get_or_create(WikiClass, WikiClass.class_name, w_class)
         session.add(wc)
 
         for dbp_class in dbp_classes:
-            wc.dbpedia_classes.append(DbpediaClass(dbp_class))
+            wc.dbpedia_classes.append(
+                get_or_create(DbpediaClass, DbpediaClass.dpedia_class, dbp_class))
 
         # print "DBPEDIA-CLASSES:"
         # print "infobox: " + w_class
         # print "hypernyms:"
         # print dbp_classes
         # print "----------------------------------"
+
+
+def get_or_create(db_class, db_table, instance):
+    try:
+        with session.begin_nested():
+            db_object = db_class(instance)
+        session.add(db_object)
+    except exc.IntegrityError:
+        db_object = session.query(db_class).filter(db_table==instance).first()
+    return db_object
 
 
 def insert(article_id, infoboxes, first_sentence, commit_frequency=1000):
@@ -75,7 +88,7 @@ def insert(article_id, infoboxes, first_sentence, commit_frequency=1000):
 def insert_all(merged_xml_path):
     with open(merged_xml_path) as f:
         for _, element in etree.iterparse(f, tag='doc'):
-            article_id = unidecode(element.get("id"))
+            article_id = element.get("id")
             infobox_str = element.get("infobox")
             infoboxes = [x.strip() for x in infobox_str.split(",") if x]
             _article_text = etree.tostring(
