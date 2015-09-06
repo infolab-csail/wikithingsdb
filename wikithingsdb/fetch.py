@@ -1,5 +1,5 @@
 from wikithingsdb.engine import engine
-from wikithingsdb.models import Page, WikiClass, Type, DbpediaClass
+from wikithingsdb.models import Page, Redirect, WikiClass, Type, DbpediaClass
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 
@@ -66,8 +66,7 @@ def classes_of_hypernym(hypernym):
 
 # Symbols & Synonyms from redirects
 def redirects_of_article(article):
-    pass
-
-
-def articles_of_redirect(synonym):
-    pass
+    results = session.query(Redirect).\
+        join(Redirect.page).\
+        filter(Redirect.rd_title == article).all()
+    return [x.page.page_title for x in results]

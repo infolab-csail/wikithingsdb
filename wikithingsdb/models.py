@@ -70,6 +70,12 @@ class Redirect(Base):
     rd_interwiki = Column(mysql.VARBINARY(32))
     rd_fragment = Column(mysql.VARBINARY(255))
 
+    page = relationship(
+        'Page',
+        primaryjoin='Redirect.rd_from==Page.page_id',
+        foreign_keys='Redirect.rd_from'
+    )
+
     def __init__(self):
         pass
 
