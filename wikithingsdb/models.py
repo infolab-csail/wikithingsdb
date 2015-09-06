@@ -81,7 +81,7 @@ class Type(Base):
     __tablename__ = "types"
 
     id = Column(Integer, primary_key=True)
-    type = Column(String(50))
+    type = Column(String(50), unique=True, index=True)
 
     def __init__(self, type):
         self.type = type
@@ -94,7 +94,7 @@ class WikiClass(Base):
     __tablename__ = "classes"
 
     id = Column(Integer, primary_key=True)
-    class_name = Column(String(50))
+    class_name = Column(String(50), unique=True, index=True)
 
     dbpedia_classes = relationship(
         'DbpediaClass', secondary=hypernyms, backref='classes')
@@ -110,7 +110,7 @@ class DbpediaClass(Base):
     __tablename__ = "dbpedia_classes"
 
     id = Column(Integer, primary_key=True)
-    dpedia_class = Column(String(50))
+    dpedia_class = Column(String(50), unique=True, index=True)
 
     def __init__(self, dpedia_class):
         self.dpedia_class = dpedia_class
