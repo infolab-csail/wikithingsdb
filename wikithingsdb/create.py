@@ -10,8 +10,11 @@ from wikithingsdb.engine import engine
 from wikithingsdb.models import Page, WikiClass, Type, DbpediaClass
 from wikithingsdb import config
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql.expression import ClauseElement
 
-session = sessionmaker(bind=engine)()
+Session = sessionmaker(bind=engine)
+session = Session()
 ontology = infoclass.get_info_ontology()
 _load_counter = 0
 
@@ -23,9 +26,10 @@ def insert_article_classes_types(article_id, w_classes, a_types):
     """
     a = session.query(Page).get(article_id)
     for w_class in w_classes:
-        a.classes.append(WikiClass(w_class))
+        a.classes.append(
+            _get_or_create(session, WikiClass, class_name=w_class))
     for a_type in a_types:
-        a.types.append(Type(a_type))
+        a.types.append(_get_or_create(session, Type, type=a_type))
 
     # print "ARTICLE-CLASSES-TYPES:"
     # print "article id: " + article_id
@@ -41,17 +45,46 @@ def insert_class_dbpedia_classes(hypernym_dict):
     insterts into DB
     """
     for w_class, dbp_classes in hypernym_dict.iteritems():
-        wc = WikiClass(w_class)
+        wc = _get_or_create(session, WikiClass, class_name=w_class)
         session.add(wc)
 
         for dbp_class in dbp_classes:
-            wc.dbpedia_classes.append(DbpediaClass(dbp_class))
+            wc.dbpedia_classes.append(
+                _get_or_create(session, DbpediaClass, dpedia_class=dbp_class))
 
         # print "DBPEDIA-CLASSES:"
         # print "infobox: " + w_class
         # print "hypernyms:"
         # print dbp_classes
         # print "----------------------------------"
+
+
+def _get_or_create(session, model, defaults={}, **kwargs):
+    try:
+        query = session.query(model).filter_by(**kwargs)
+
+        instance = query.first()
+
+        if instance:
+            return instance
+        else:
+            session.begin(nested=True)
+            try:
+                params = {k: v for k, v in kwargs.iteritems() if not isinstance(v, ClauseElement)}
+                params.update(defaults)
+                instance = model(**params)
+
+                session.add(instance)
+                session.commit()
+
+                return instance
+            except IntegrityError as e:
+                session.rollback()
+                instance = query.one()
+
+                return instance
+    except Exception as e:
+        raise e
 
 
 def insert(article_id, infoboxes, first_sentence, commit_frequency=1000):
@@ -75,7 +108,7 @@ def insert(article_id, infoboxes, first_sentence, commit_frequency=1000):
 def insert_all(merged_xml_path):
     with open(merged_xml_path) as f:
         for _, element in etree.iterparse(f, tag='doc'):
-            article_id = unidecode(element.get("id"))
+            article_id = element.get("id")
             infobox_str = element.get("infobox")
             infoboxes = [x.strip() for x in infobox_str.split(",") if x]
             _article_text = etree.tostring(
