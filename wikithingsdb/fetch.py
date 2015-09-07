@@ -1,7 +1,6 @@
 from wikithingsdb.engine import engine
 from wikithingsdb.models import Page, Redirect, WikiClass, Type, DbpediaClass
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import func
 
 session = sessionmaker(bind=engine)()
 
@@ -33,7 +32,6 @@ def hypernyms_of_article(article):
             for w_class in classes_of_article(article)}
 
 
-# also
 def hypernyms_of_class(w_class):
     result = session.query(WikiClass).\
         join(WikiClass.dbpedia_classes).\
@@ -54,10 +52,9 @@ def articles_of_class(w_class):
 
 def articles_of_hypernym(hypernym):
     return {w_class: articles_of_class(w_class)
-            for w_class in classes_under_hypernym(hypernym)}
+            for w_class in classes_of_hypernym(hypernym)}
 
 
-# also
 def classes_of_hypernym(hypernym):
     result = session.query(DbpediaClass).\
         filter_by(dpedia_class=hypernym).one()
