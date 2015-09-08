@@ -13,6 +13,10 @@ session = sessionmaker(bind=engine)()
 
 # What are all the ways to refer to ARTICLE?
 def types_of_article(article):
+    """Given a case-sensitive article title (string with underscores
+    instead of spaces), return the types extracted from the article's
+    first sentence by Whoami (as a list of strings).
+    """
     # article = _clean_query(article)
     result = session.query(Page).\
         join(Page.types).\
@@ -21,6 +25,10 @@ def types_of_article(article):
 
 
 def classes_of_article(article):
+    """Given a case-sensitive article title (string with underscores
+    instead of spaces), return the infoboxes of the article (as a list
+    of strings).
+    """
     result = session.query(Page).\
         join(Page.classes).\
         filter(Page.page_title == article).one()
@@ -28,11 +36,21 @@ def classes_of_article(article):
 
 
 def hypernyms_of_article(article):
+    """Given a case-sensitive article title (string with underscores
+    instead of spaces), return a dictionary where each key is an
+    infobox of the article and its values are a list of hypernyms (as
+    a list of strings) from DBpedia's Ontology Classes. Hypernyms are
+    UpperCamelCase.
+    """
     return {w_class: hypernyms_of_class(w_class)
             for w_class in classes_of_article(article)}
 
 
 def hypernyms_of_class(w_class):
+    """Given a lowercase infobox name (string with hyphens instead of
+    spaces), return a list of hypernyms (as a list of strings) from
+    DBpedia's Ontology Classes. Hypernyms are UpperCamelCase.
+    """
     result = session.query(WikiClass).\
         join(WikiClass.dbpedia_classes).\
         filter(WikiClass.class_name == w_class).one()
@@ -41,21 +59,39 @@ def hypernyms_of_class(w_class):
 
 # What are all the articles of TYPE, CLASS, DBPEDIA_CLASS?
 def articles_of_type(given_type):
+    """Given a lowercase type (spaces allowed, string), return all
+    articles of that type (list of strings with underscores instead of
+    spaces)
+    """
     result = session.query(Type).filter_by(type=given_type).one()
     return [x.page_title for x in result.page]
 
 
 def articles_of_class(w_class):
+    """Given a lowercase infobox name (string with hyphens instead of
+    spaces), return all articles of that type (list of strings with
+    underscores instead of spaces)
+    """
     result = session.query(WikiClass).filter_by(class_name=w_class).one()
     return [x.page_title for x in result.page]
 
 
 def articles_of_hypernym(hypernym):
+    """Given an UpperCamelCase hypernym from DBpedia (string), return
+    a dictionary where each key is an infobox (string with hyphens
+    instead of spaces) of that hypernym and each value is a list of
+    articles of that infobox (list of strings with underscores instead
+    of spaces)
+    """
     return {w_class: articles_of_class(w_class)
             for w_class in classes_of_hypernym(hypernym)}
 
 
 def classes_of_hypernym(hypernym):
+    """Given an UpperCamelCase hypernym from DBpedia (string), return
+    a list of infoboxes of that hypernym (list of strings with hyphens
+    instead of spaces)
+    """
     result = session.query(DbpediaClass).\
         filter_by(dpedia_class=hypernym).one()
     return [x.class_name for x in result.classes]
@@ -63,6 +99,11 @@ def classes_of_hypernym(hypernym):
 
 # Symbols & Synonyms from redirects
 def redirects_of_article(article):
+    """Given a case-sensitive article title (string with underscores
+    instead of spaces), return a list of articles (list of strings
+    with underscores instead of spaces) that redirect to your given
+    article.
+    """
     results = session.query(Redirect).\
         join(Redirect.page).\
         filter(Redirect.rd_title == article).all()
