@@ -1,6 +1,7 @@
 from wikithingsdb.engine import engine
 from wikithingsdb.models import Page, Redirect, WikiClass, Type, DbpediaClass
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 session = sessionmaker(bind=engine)()
 
@@ -18,9 +19,20 @@ def types_of_article(article):
     first sentence by Whoami (as a list of strings).
     """
     # article = _clean_query(article)
-    result = session.query(Page).\
-        join(Page.types).\
-        filter(Page.page_title == article).one()
+    try:
+        result = session.query(Page).\
+            join(Page.types).\
+            filter(Page.page_title == article).one()
+    except NoResultFound:
+        raise KeyError("No such article: " + article)
+    except MultipleResultsFound:
+        raise RuntimeError(
+        """This should not have happened. Please report to
+        https://github.com/infolab-csail/wikithingsdb/issues and
+        include the full stacktrace and steps to reproduce the
+        error."""
+        )
+
     return [x.type for x in result.types]
 
 
@@ -29,9 +41,20 @@ def classes_of_article(article):
     instead of spaces), return the infoboxes of the article (as a list
     of strings).
     """
-    result = session.query(Page).\
-        join(Page.classes).\
-        filter(Page.page_title == article).one()
+    try:
+        result = session.query(Page).\
+            join(Page.classes).\
+            filter(Page.page_title == article).one()
+    except NoResultFound:
+        raise KeyError("No such article: " + article)
+    except MultipleResultsFound:
+        raise RuntimeError(
+        """This should not have happened. Please report to
+        https://github.com/infolab-csail/wikithingsdb/issues and
+        include the full stacktrace and steps to reproduce the
+        error."""
+        )
+
     return [x.class_name for x in result.classes]
 
 
@@ -51,9 +74,20 @@ def hypernyms_of_class(w_class):
     spaces), return a list of hypernyms (as a list of strings) from
     DBpedia's Ontology Classes. Hypernyms are UpperCamelCase.
     """
-    result = session.query(WikiClass).\
-        join(WikiClass.dbpedia_classes).\
-        filter(WikiClass.class_name == w_class).one()
+    try:
+        result = session.query(WikiClass).\
+            join(WikiClass.dbpedia_classes).\
+            filter(WikiClass.class_name == w_class).one()
+    except NoResultFound:
+        raise KeyError("No such class: " + w_class)
+    except MultipleResultsFound:
+        raise RuntimeError(
+        """This should not have happened. Please report to
+        https://github.com/infolab-csail/wikithingsdb/issues and
+        include the full stacktrace and steps to reproduce the
+        error."""
+        )
+
     return [x.dpedia_class for x in result.dbpedia_classes]
 
 
@@ -63,7 +97,18 @@ def articles_of_type(given_type):
     articles of that type (list of strings with underscores instead of
     spaces)
     """
-    result = session.query(Type).filter_by(type=given_type).one()
+    try:
+        result = session.query(Type).filter_by(type=given_type).one()
+    except NoResultFound:
+        raise KeyError("No such type: " + given_type)
+    except MultipleResultsFound:
+        raise RuntimeError(
+        """This should not have happened. Please report to
+        https://github.com/infolab-csail/wikithingsdb/issues and
+        include the full stacktrace and steps to reproduce the
+        error."""
+        )
+
     return [x.page_title for x in result.page]
 
 
@@ -72,7 +117,18 @@ def articles_of_class(w_class):
     spaces), return all articles of that type (list of strings with
     underscores instead of spaces)
     """
-    result = session.query(WikiClass).filter_by(class_name=w_class).one()
+    try:
+        result = session.query(WikiClass).filter_by(class_name=w_class).one()
+    except NoResultFound:
+        raise KeyError("No such class: " + w_class)
+    except MultipleResultsFound:
+        raise RuntimeError(
+        """This should not have happened. Please report to
+        https://github.com/infolab-csail/wikithingsdb/issues and
+        include the full stacktrace and steps to reproduce the
+        error."""
+        )
+
     return [x.page_title for x in result.page]
 
 
@@ -92,8 +148,19 @@ def classes_of_hypernym(hypernym):
     a list of infoboxes of that hypernym (list of strings with hyphens
     instead of spaces)
     """
-    result = session.query(DbpediaClass).\
-        filter_by(dpedia_class=hypernym).one()
+    try:
+        result = session.query(DbpediaClass).\
+            filter_by(dpedia_class=hypernym).one()
+    except NoResultFound:
+        raise KeyError("No such hypernym: " + hypernym)
+    except MultipleResultsFound:
+        raise RuntimeError(
+        """This should not have happened. Please report to
+        https://github.com/infolab-csail/wikithingsdb/issues and
+        include the full stacktrace and steps to reproduce the
+        error."""
+        )
+
     return [x.class_name for x in result.classes]
 
 
@@ -107,4 +174,7 @@ def redirects_of_article(article):
     results = session.query(Redirect).\
         join(Redirect.page).\
         filter(Redirect.rd_title == article).all()
+    if len(results) == 0:
+        raise KeyError("No such article: " + article)
+
     return [x.page.page_title for x in results]
