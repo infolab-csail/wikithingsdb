@@ -17,7 +17,8 @@ setup(
         'unidecode',
         'lxml',
         'requests',
-        'defexpand'
+        'defexpand',
+        'beautifulsoup4',
     ],
     dependency_links=[
         'git+https://github.com/infolab-csail/defexpand.git#egg=defexpand'

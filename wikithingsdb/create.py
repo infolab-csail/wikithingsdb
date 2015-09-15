@@ -7,6 +7,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import logging
 import time
+from bs4 import BeautifulSoup
 from Queue import Queue
 from threading import Thread
 from unidecode import unidecode
@@ -57,6 +58,7 @@ def get_first_sentence(article_text):
     first_paragraph = article_text.split('\n')[3]
     if first_paragraph:
         sentence = sent_tokenize(first_paragraph)[0]
+        sentence = BeautifulSoup(sentence, 'lxml').getText() # remove <a> tags
         sentence = unidecode(sentence)
     else:
         sentence = ''
@@ -138,6 +140,10 @@ def insert_article_classes_types(article_id, w_classes, a_types):
     into DB
     """
     a = session.query(Page).get(article_id)
+    if a is None:
+        raise ValueError("Article with id '%s' was not found in the database"
+                % article_id)
+
     for w_class in w_classes:
         a.classes.append(
             _get_or_create(session, WikiClass, class_name=w_class))
@@ -203,6 +209,7 @@ def _get_or_create(session, model, defaults={}, **kwargs):
 def db_worker(num_article_workers, commit_frequency=1000):
     num_poisons = 0
     insert_count = 0
+    batch_start = time.time()
 
     while num_poisons < num_article_workers:
         fields = output.get()
@@ -211,15 +218,24 @@ def db_worker(num_article_workers, commit_frequency=1000):
         else:
             logger.debug("Get fields from output queue")
             id, infoboxes, types, hypernyms = fields
-            insert_article_classes_types(id, infoboxes, types)
-            insert_class_dbpedia_classes(hypernyms)
+
+            try:
+                insert_article_classes_types(id, infoboxes, types)
+                insert_class_dbpedia_classes(hypernyms)
+            except Exception as e:
+                logger.exception(e)
+
             logger.debug('inserted article with id %s' % id)
             insert_count += 1
 
             if insert_count % commit_frequency == 0:
-                logger.info('COMMIT point. Progress: %s articles'
-                            % insert_count)
                 session.commit()
+                batch_time = time.time() - batch_start
+                logger.info('COMMIT point. '
+                            'Progress: %s articles. '
+                            'Batch of size %s took %d seconds.'
+                            % (insert_count, commit_frequency, batch_time))
+                batch_start = time.time()
 
     logger.info("DB worker received all POISONs, terminating.")
 
