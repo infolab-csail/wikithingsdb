@@ -3,9 +3,9 @@
 from wikithingsdb.engine import engine
 from sqlalchemy import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String
-from sqlalchemy import Table, Text
+from sqlalchemy import Table
 from sqlalchemy.dialects import mysql
 
 Base = declarative_base()
@@ -81,7 +81,7 @@ class Type(Base):
     __tablename__ = "types"
 
     id = Column(Integer, primary_key=True)
-    type = Column(String(50), unique=True, index=True)
+    type = Column(String(100), unique=True, index=True)
 
     def __init__(self, type):
         self.type = type
@@ -94,7 +94,7 @@ class WikiClass(Base):
     __tablename__ = "classes"
 
     id = Column(Integer, primary_key=True)
-    class_name = Column(String(50), unique=True, index=True)
+    class_name = Column(String(100), unique=True, index=True)
 
     dbpedia_classes = relationship(
         'DbpediaClass', secondary=hypernyms, backref='classes')
@@ -110,7 +110,7 @@ class DbpediaClass(Base):
     __tablename__ = "dbpedia_classes"
 
     id = Column(Integer, primary_key=True)
-    dpedia_class = Column(String(50), unique=True, index=True)
+    dpedia_class = Column(String(100), unique=True, index=True)
 
     def __init__(self, dpedia_class):
         self.dpedia_class = dpedia_class
