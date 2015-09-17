@@ -155,11 +155,21 @@ def insert_article_classes_types(article_id, w_classes, a_types):
     #     raise ValueError("Article with id '%s' was not found in the database"
     #                      % article_id)
 
-    class_rows = [{'a_id': article_id, 'c_id': _get_id(WikiClass, class_name=w_class)} for w_class in w_classes]
-    session.bulk_insert_mappings(ArticleClass, class_rows)
+    session.begin(nested=True)
+    try:
+        class_rows = [{'a_id': article_id, 'c_id': _get_id(WikiClass, class_name=w_class)} for w_class in w_classes]
+        session.bulk_insert_mappings(ArticleClass, class_rows)
 
-    type_rows = [{'a_id': article_id, 't_id': _get_id(Type, type=a_type)} for a_type in a_types]
-    session.bulk_insert_mappings(ArticleType, type_rows)
+        type_rows = [{'a_id': article_id, 't_id': _get_id(Type, type=a_type)} \
+                for a_type in a_types]
+        session.bulk_insert_mappings(ArticleType, type_rows)
+
+        session.commit()
+    except IntegrityError as e:
+        logger.exception(e)
+        session.rollback()
+        raise ValueError("Article with id '%s' was not found in the database"
+                         % article_id)
 
     # print "ARTICLE-CLASSES-TYPES:"
     # print "article id: " + article_id
