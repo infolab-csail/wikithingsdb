@@ -121,9 +121,6 @@ def ignore_types(title, sentence):
 def get_class_hypernyms(infoboxes):
     return {infobox: ontology.classes_above_infobox(infobox)
             for infobox in infoboxes}
-    # for infobox in infoboxes:
-    #     hypernyms = ontology.classes_above_infobox(infobox)
-    #     insert_class_dbpedia_classes(infobox, hypernyms)
 
 
 def get_fields(article):
@@ -150,11 +147,6 @@ def insert_article_classes_types(article_id, w_classes, a_types):
     """Given an article's id (int) and classes (list of str), inserts
     into DB
     """
-    # a = session.query(Page).get(article_id)
-    # if a is None:
-    #     raise ValueError("Article with id '%s' was not found in the database"
-    #                      % article_id)
-
     class_rows = [{
         'a_id': article_id,
         'c_id': _get_id(WikiClass, class_name=w_class)
@@ -172,14 +164,6 @@ def insert_article_classes_types(article_id, w_classes, a_types):
         session.rollback()
         raise e
 
-    # print "ARTICLE-CLASSES-TYPES:"
-    # print "article id: " + article_id
-    # print "infoboxes:"
-    # print w_classes
-    # print "types:"
-    # print a_types
-    # print "----------------------------------"
-
 
 def insert_class_dbpedia_classes(hypernym_dict):
     """Given class (str) and list of dbpedia_classes (list of str),
@@ -194,11 +178,6 @@ def insert_class_dbpedia_classes(hypernym_dict):
         } for dbp_class in dbp_classes])
 
     session.bulk_insert_mappings(Hypernym, hypernym_rows)
-    # print "DBPEDIA-CLASSES:"
-    # print "infobox: " + w_class
-    # print "hypernyms:"
-    # print dbp_classes
-    # print "----------------------------------"
 
 
 def _get_id(model, **kwargs):
@@ -406,15 +385,6 @@ def main():
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
     process_articles(args)
-
-    # try:
-    #    insert_all(args.merged_xml)
-    # except etree.XMLSyntaxError:
-    #    pass
-    # finally:
-    #    print "**************FINAL COMMIT COMMIT COMMIT **************"
-    #    session.commit()
-
 
 if __name__ == '__main__':
     main()
