@@ -14,8 +14,10 @@ from unidecode import unidecode
 from defexpand import infoclass
 from nltk.tokenize import sent_tokenize
 from wikithingsdb.engine import engine
-from wikithingsdb.models import Page, WikiClass, Type, DbpediaClass
+from wikithingsdb.models import ArticleClass, ArticleType, DbpediaClass, \
+    Hypernym, Type, WikiClass
 from wikithingsdb import config
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import ClauseElement
@@ -25,6 +27,14 @@ session = Session()
 logger = logging.getLogger(__name__)
 
 ontology = infoclass.get_info_ontology()
+
+# since classes, types, and dbpedia_classes are small tables, we can keep their
+# ids in memory and prevent a roundtrip to the DB
+cache = {
+    'types': {},
+    'classes': {},
+    'dbpedia_classes': {},
+}
 
 # XML article header
 HEADER_STR = "<doc id="
@@ -46,6 +56,7 @@ def get_header_fields(header):
         title = m.group(3)
         if m.group(4).strip():
             infoboxes = m.group(4).split(', ')
+            infoboxes = list(set(infoboxes)) # deduplicate
         else:
             infoboxes = []
         return id, title, infoboxes
@@ -58,7 +69,7 @@ def get_first_sentence(article_text):
     first_paragraph = article_text.split('\n')[3]
     if first_paragraph:
         sentence = sent_tokenize(first_paragraph)[0]
-        sentence = BeautifulSoup(sentence, 'lxml').getText() # remove <a> tags
+        sentence = BeautifulSoup(sentence, 'lxml').getText()  # remove <a> tags
         sentence = unidecode(sentence)
     else:
         sentence = ''
@@ -88,7 +99,7 @@ def get_types(sentence):
     _result = r.json()
     definitions = _result['definitions']
 
-    return [d.encode('utf-8') for d in definitions]
+    return [d.encode('utf-8') for d in set(definitions)]
 
 
 def ignore_types(title, sentence):
@@ -139,16 +150,16 @@ def insert_article_classes_types(article_id, w_classes, a_types):
     """Given an article's id (int) and classes (list of str), inserts
     into DB
     """
-    a = session.query(Page).get(article_id)
-    if a is None:
-        raise ValueError("Article with id '%s' was not found in the database"
-                % article_id)
+    # a = session.query(Page).get(article_id)
+    # if a is None:
+    #     raise ValueError("Article with id '%s' was not found in the database"
+    #                      % article_id)
 
-    for w_class in w_classes:
-        a.classes.append(
-            _get_or_create(session, WikiClass, class_name=w_class))
-    for a_type in a_types:
-        a.types.append(_get_or_create(session, Type, type=a_type))
+    class_rows = [{'a_id': article_id, 'c_id': _get_id(WikiClass, class_name=w_class)} for w_class in w_classes]
+    session.bulk_insert_mappings(ArticleClass, class_rows)
+
+    type_rows = [{'a_id': article_id, 't_id': _get_id(Type, type=a_type)} for a_type in a_types]
+    session.bulk_insert_mappings(ArticleType, type_rows)
 
     # print "ARTICLE-CLASSES-TYPES:"
     # print "article id: " + article_id
@@ -163,25 +174,44 @@ def insert_class_dbpedia_classes(hypernym_dict):
     """Given class (str) and list of dbpedia_classes (list of str),
     insterts into DB
     """
+    hypernym_rows = []
     for w_class, dbp_classes in hypernym_dict.iteritems():
-        wc = _get_or_create(session, WikiClass, class_name=w_class)
-        session.add(wc)
+        c_id = _get_id(WikiClass, class_name=w_class)
+        hypernym_rows.extend([{'c_id': c_id, 'd_id': _get_id(DbpediaClass, dpedia_class=dbp_class)} for dbp_class in dbp_classes])
 
-        for dbp_class in dbp_classes:
-            wc.dbpedia_classes.append(
-                _get_or_create(session, DbpediaClass, dpedia_class=dbp_class))
+    session.bulk_insert_mappings(Hypernym, hypernym_rows)
+    # print "DBPEDIA-CLASSES:"
+    # print "infobox: " + w_class
+    # print "hypernyms:"
+    # print dbp_classes
+    # print "----------------------------------"
 
-        # print "DBPEDIA-CLASSES:"
-        # print "infobox: " + w_class
-        # print "hypernyms:"
-        # print dbp_classes
-        # print "----------------------------------"
+
+def _get_id(model, **kwargs):
+    if len(kwargs) != 1:
+        raise ValueError('The cache needs exactly 1 filter')
+
+    table_name = model.__tablename__
+    if table_name not in cache:
+        raise ValueError("Table '%s' is not in the cache" % table_name)
+
+    value = kwargs.values()[0]
+
+    # attempt to get the id from the cache
+    try:
+        return cache[table_name][value]
+    except KeyError:
+        logger.debug("Cache miss '%s' for %s" % (value, table_name))
+
+    # cache the primary key (id) of the instance
+    id = inspect(_get_or_create(session, model, **kwargs)).identity[0]
+    cache[table_name][value] = id
+    return id
 
 
 def _get_or_create(session, model, defaults={}, **kwargs):
     try:
         query = session.query(model).filter_by(**kwargs)
-
         instance = query.first()
 
         if instance:
@@ -189,7 +219,8 @@ def _get_or_create(session, model, defaults={}, **kwargs):
         else:
             session.begin(nested=True)
             try:
-                params = {k: v for k, v in kwargs.iteritems() if not isinstance(v, ClauseElement)}
+                params = {k: v for k, v in kwargs.iteritems()
+                          if not isinstance(v, ClauseElement)}
                 params.update(defaults)
                 instance = model(**params)
 
@@ -216,16 +247,15 @@ def db_worker(num_article_workers, commit_frequency=1000):
         if fields == POISON:
             num_poisons += 1
         else:
-            logger.debug("Get fields from output queue")
             id, infoboxes, types, hypernyms = fields
 
             try:
                 insert_article_classes_types(id, infoboxes, types)
-                insert_class_dbpedia_classes(hypernyms)
+                # insert_class_dbpedia_classes(hypernyms)
+                # TODO : leave this for the end
             except Exception as e:
                 logger.exception(e)
 
-            logger.debug('inserted article with id %s' % id)
             insert_count += 1
 
             if insert_count % commit_frequency == 0:
@@ -233,8 +263,9 @@ def db_worker(num_article_workers, commit_frequency=1000):
                 batch_time = time.time() - batch_start
                 logger.info('COMMIT point. '
                             'Progress: %s articles. '
-                            'Batch of size %s took %d seconds.'
-                            % (insert_count, commit_frequency, batch_time))
+                            'Batch of size %s took %d seconds (%ss / article).'
+                            % (insert_count, commit_frequency, batch_time,
+                                batch_time / commit_frequency))
                 batch_start = time.time()
 
     logger.info("DB worker received all POISONs, terminating.")
@@ -247,7 +278,6 @@ def article_worker():
             output.put(POISON)
             break
         else:
-            logger.debug("Get article from input queue")
             try:
                 result = get_fields(article)
                 output.put(result)
@@ -286,7 +316,6 @@ def process_articles(args):
         article += line
         if line == '</doc>\n':
             input.put(article)
-            logger.debug("Put article to input queue")
             count += 1
             article = ''
     file.close()
@@ -310,7 +339,7 @@ def process_articles(args):
     minutes, seconds = divmod(diff, 60)
     hours, minutes = divmod(minutes, 60)
     logger.info(' ... %d hours, %d minutes, and %f seconds'
-                % (count, hours, minutes, seconds))
+                % (hours, minutes, seconds))
     minutes, seconds = divmod(diff / count, 60)
     logger.info('Average time/article: %d minutes and %f seconds'
                 % (minutes, seconds))

@@ -7,30 +7,61 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String
 from sqlalchemy import Table
 from sqlalchemy.dialects import mysql
+from sqlalchemy.orm import mapper
 
 Base = declarative_base()
 
 
-article_classes = Table('article_classes', Base.metadata,
-                        Column(
-                            'a_id', mysql.INTEGER(8, unsigned=True),
-                            ForeignKey('page.page_id')),
-                        Column('c_id', Integer, ForeignKey('classes.id'))
-                        )
+article_classes = Table(
+    'article_classes',
+    Base.metadata,
+    Column('a_id', mysql.INTEGER(8, unsigned=True), ForeignKey('page.page_id'),
+           primary_key=True),
+    Column('c_id', Integer, ForeignKey('classes.id'), primary_key=True),
+)
 
 
-hypernyms = Table('hypernyms', Base.metadata,
-                  Column('c_id', Integer, ForeignKey('classes.id')),
-                  Column('d_id', Integer, ForeignKey('dbpedia_classes.id'))
-                  )
+article_types = Table(
+    'article_types',
+    Base.metadata,
+    Column('a_id', mysql.INTEGER(8, unsigned=True), ForeignKey('page.page_id'),
+           primary_key=True),
+    Column('t_id', Integer, ForeignKey('types.id'), primary_key=True),
+)
 
 
-article_types = Table('article_types', Base.metadata,
-                      Column(
-                          'a_id', mysql.INTEGER(8, unsigned=True),
-                          ForeignKey('page.page_id')),
-                      Column('t_id', Integer, ForeignKey('types.id'))
-                      )
+hypernyms = Table(
+    'hypernyms',
+    Base.metadata,
+    Column('c_id', Integer, ForeignKey('classes.id'), primary_key=True),
+    Column('d_id', Integer, ForeignKey('dbpedia_classes.id'), primary_key=True),
+)
+
+
+class ArticleClass(object):
+
+    def __init__(self, a_id, c_id):
+        self.a_id = a_id
+        self.c_id = c_id
+
+
+class ArticleType(object):
+
+    def __init__(self, a_id, t_id):
+        self.a_id = a_id
+        self.t_id = t_id
+
+
+class Hypernym(object):
+
+    def __init__(self, c_id, d_id):
+        self.c_id = c_id
+        self.d_id = d_id
+
+
+mapper(ArticleClass, article_classes)
+mapper(ArticleType, article_types)
+mapper(Hypernym, hypernyms)
 
 
 class Page(Base):
