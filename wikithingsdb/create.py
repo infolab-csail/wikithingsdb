@@ -56,7 +56,7 @@ def get_header_fields(header):
         title = m.group(3)
         if m.group(4).strip():
             infoboxes = m.group(4).split(', ')
-            infoboxes = list(set(infoboxes)) # deduplicate
+            infoboxes = list(set(infoboxes))  # deduplicate
         else:
             infoboxes = []
         return id, title, infoboxes
@@ -155,21 +155,22 @@ def insert_article_classes_types(article_id, w_classes, a_types):
     #     raise ValueError("Article with id '%s' was not found in the database"
     #                      % article_id)
 
-    session.begin(nested=True)
+    class_rows = [{
+        'a_id': article_id,
+        'c_id': _get_id(WikiClass, class_name=w_class)
+    } for w_class in w_classes]
+
+    type_rows = [{'a_id': article_id, 't_id': _get_id(Type, type=a_type)}
+                 for a_type in a_types]
+
+    session.begin_nested()
     try:
-        class_rows = [{'a_id': article_id, 'c_id': _get_id(WikiClass, class_name=w_class)} for w_class in w_classes]
         session.bulk_insert_mappings(ArticleClass, class_rows)
-
-        type_rows = [{'a_id': article_id, 't_id': _get_id(Type, type=a_type)} \
-                for a_type in a_types]
         session.bulk_insert_mappings(ArticleType, type_rows)
-
         session.commit()
     except IntegrityError as e:
-        logger.exception(e)
         session.rollback()
-        raise ValueError("Article with id '%s' was not found in the database"
-                         % article_id)
+        raise e
 
     # print "ARTICLE-CLASSES-TYPES:"
     # print "article id: " + article_id
@@ -187,7 +188,10 @@ def insert_class_dbpedia_classes(hypernym_dict):
     hypernym_rows = []
     for w_class, dbp_classes in hypernym_dict.iteritems():
         c_id = _get_id(WikiClass, class_name=w_class)
-        hypernym_rows.extend([{'c_id': c_id, 'd_id': _get_id(DbpediaClass, dpedia_class=dbp_class)} for dbp_class in dbp_classes])
+        hypernym_rows.extend([{
+            'c_id': c_id,
+            'd_id': _get_id(DbpediaClass, dpedia_class=dbp_class)
+        } for dbp_class in dbp_classes])
 
     session.bulk_insert_mappings(Hypernym, hypernym_rows)
     # print "DBPEDIA-CLASSES:"
@@ -214,7 +218,8 @@ def _get_id(model, **kwargs):
         logger.debug("Cache miss '%s' for %s" % (value, table_name))
 
     # cache the primary key (id) of the instance
-    id = inspect(_get_or_create(session, model, **kwargs)).identity[0]
+    instance = _get_or_create(session, model, **kwargs)
+    id = inspect(instance).identity[0]
     cache[table_name][value] = id
     return id
 
@@ -247,7 +252,7 @@ def _get_or_create(session, model, defaults={}, **kwargs):
         raise e
 
 
-def db_worker(num_article_workers, commit_frequency=1000):
+def db_worker(num_article_workers, status_frequency=1000):
     num_poisons = 0
     insert_count = 0
     batch_start = time.time()
@@ -268,14 +273,13 @@ def db_worker(num_article_workers, commit_frequency=1000):
 
             insert_count += 1
 
-            if insert_count % commit_frequency == 0:
+            if insert_count % status_frequency == 0:
                 session.commit()
                 batch_time = time.time() - batch_start
-                logger.info('COMMIT point. '
-                            'Progress: %s articles. '
+                logger.info('Progress: %s articles. '
                             'Batch of size %s took %d seconds (%ss / article).'
-                            % (insert_count, commit_frequency, batch_time,
-                                batch_time / commit_frequency))
+                            % (insert_count, status_frequency, batch_time,
+                                batch_time / status_frequency))
                 batch_start = time.time()
 
     logger.info("DB worker received all POISONs, terminating.")
@@ -309,7 +313,7 @@ def process_articles(args):
     insert_thread = Thread(target=db_worker,
                            name='DbWorker',
                            args=[args.threads],
-                           kwargs={'commit_frequency': 1000})
+                           kwargs={'status_frequency': 1000})
 
     insert_thread.start()
     logger.info('Started db insert worker thread')
