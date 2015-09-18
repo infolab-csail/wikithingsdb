@@ -67,7 +67,12 @@ def get_header_fields(header):
 
 
 def get_first_sentence(first_paragraph):
-    sentence = sent_tokenize(first_paragraph)[0]
+    sentences = sent_tokenize(first_paragraph)
+
+    if len(sentences) == 0:
+        return ''
+
+    sentence = sentences[0]
     sentence = BeautifulSoup(sentence, 'lxml').getText()  # remove <a> tags
     sentence = unidecode(sentence)
     return sentence
