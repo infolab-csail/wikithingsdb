@@ -66,16 +66,10 @@ def get_header_fields(header):
         raise ValueError("Invalid header format: %s" % header)
 
 
-def get_first_sentence(article_text):
-    # first line is the title, skip
-    first_paragraph = article_text.split('\n')[3]
-    if first_paragraph:
-        sentence = sent_tokenize(first_paragraph)[0]
-        sentence = BeautifulSoup(sentence, 'lxml').getText()  # remove <a> tags
-        sentence = unidecode(sentence)
-    else:
-        sentence = ''
-
+def get_first_sentence(first_paragraph):
+    sentence = sent_tokenize(first_paragraph)[0]
+    sentence = BeautifulSoup(sentence, 'lxml').getText()  # remove <a> tags
+    sentence = unidecode(sentence)
     return sentence
 
 
@@ -131,8 +125,8 @@ def get_fields(article):
     id, title, infoboxes = get_header_fields(header)
     id = int(id)
 
-    text = '\n'.join(lines[1:-1])
-    sentence = get_first_sentence(text)
+    first_paragraph = lines[3]
+    sentence = get_first_sentence(first_paragraph)
 
     types = []
     if not ignore_types(title, sentence):
