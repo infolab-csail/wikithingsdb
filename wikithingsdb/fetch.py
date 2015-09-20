@@ -17,6 +17,8 @@ def types_of_article(article):
     """Given a case-sensitive article title (string with underscores
     instead of spaces), return the types extracted from the article's
     first sentence by Whoami (as a list of strings).
+
+    If no such article is found, raises a KeyError.
     """
     # article = _clean_query(article)
     try:
@@ -40,6 +42,8 @@ def classes_of_article(article):
     """Given a case-sensitive article title (string with underscores
     instead of spaces), return the infoboxes of the article (as a list
     of strings).
+
+    If no such article is found, raises a KeyError.
     """
     try:
         result = session.query(Page).\
@@ -64,6 +68,8 @@ def hypernyms_of_article(article):
     infobox of the article and its values are a list of hypernyms (as
     a list of strings) from DBpedia's Ontology Classes. Hypernyms are
     UpperCamelCase.
+
+    If no such article is found, raises a KeyError.
     """
     return {w_class: hypernyms_of_class(w_class)
             for w_class in classes_of_article(article)}
@@ -73,6 +79,8 @@ def hypernyms_of_class(w_class):
     """Given a lowercase infobox name (string with hyphens instead of
     spaces), return a list of hypernyms (as a list of strings) from
     DBpedia's Ontology Classes. Hypernyms are UpperCamelCase.
+
+    If no such class is found, raises a KeyError.
     """
     try:
         result = session.query(WikiClass).\
@@ -96,6 +104,8 @@ def articles_of_type(given_type):
     """Given a lowercase type (spaces allowed, string), return all
     articles of that type (list of strings with underscores instead of
     spaces)
+
+    If no such type is found, raises a KeyError.
     """
     try:
         result = session.query(Type).filter_by(type=given_type).one()
@@ -116,6 +126,8 @@ def articles_of_class(w_class):
     """Given a lowercase infobox name (string with hyphens instead of
     spaces), return all articles of that type (list of strings with
     underscores instead of spaces)
+
+    If no such class is found, raises a KeyError.
     """
     try:
         result = session.query(WikiClass).filter_by(class_name=w_class).one()
@@ -138,6 +150,8 @@ def articles_of_hypernym(hypernym):
     instead of spaces) of that hypernym and each value is a list of
     articles of that infobox (list of strings with underscores instead
     of spaces)
+
+    If no such hypernym is found, raises a KeyError.
     """
     return {w_class: articles_of_class(w_class)
             for w_class in classes_of_hypernym(hypernym)}
@@ -147,6 +161,8 @@ def classes_of_hypernym(hypernym):
     """Given an UpperCamelCase hypernym from DBpedia (string), return
     a list of infoboxes of that hypernym (list of strings with hyphens
     instead of spaces)
+
+    If no such hypernym is found, raises a KeyError.
     """
     try:
         result = session.query(DbpediaClass).\
@@ -170,6 +186,8 @@ def redirects_of_article(article):
     instead of spaces), return a list of articles (list of strings
     with underscores instead of spaces) that redirect to your given
     article.
+
+    If no such article is found, raises a KeyError.
     """
     results = session.query(Redirect).\
         join(Redirect.page).\
