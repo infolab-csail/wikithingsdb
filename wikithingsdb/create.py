@@ -119,9 +119,8 @@ def ignore_types(title, sentence):
     return is_disambig or is_list or is_refer
 
 
-def get_class_hypernyms(infoboxes):
-    return {infobox: ontology.classes_above_infobox(infobox)
-            for infobox in infoboxes}
+def get_hypernyms(wiki_class):
+    return ontology.classes_above_infobox(wiki_class)
 
 
 def get_fields(article):
@@ -137,9 +136,7 @@ def get_fields(article):
     if not ignore_types(title, sentence):
         types = get_types(sentence)
 
-    hypernyms = get_class_hypernyms(infoboxes)
-
-    return id, infoboxes, types, hypernyms
+    return id, infoboxes, types
 
 # DB-INSERTION
 
@@ -166,10 +163,7 @@ def insert_article_classes_types(article_id, w_classes, a_types):
         raise e
 
 
-def insert_class_dbpedia_classes(hypernym_dict):
-    """Given class (str) and list of dbpedia_classes (list of str),
-    insterts into DB
-    """
+def insert_hypernyms(hypernym_dict):
     hypernym_rows = []
     for w_class, dbp_classes in hypernym_dict.iteritems():
         c_id = _get_id(WikiClass, class_name=w_class)
@@ -179,6 +173,7 @@ def insert_class_dbpedia_classes(hypernym_dict):
         } for dbp_class in dbp_classes])
 
     session.bulk_insert_mappings(Hypernym, hypernym_rows)
+    session.commit()
 
 
 def _get_id(model, **kwargs):
@@ -242,12 +237,10 @@ def db_worker(num_article_workers, status_frequency=1000, start_count=0):
         if fields == POISON:
             num_poisons += 1
         else:
-            id, infoboxes, types, hypernyms = fields
+            id, infoboxes, types = fields
 
             try:
                 insert_article_classes_types(id, infoboxes, types)
-                # insert_class_dbpedia_classes(hypernyms)
-                # TODO : leave this for the end
             except Exception as e:
                 logger.exception(e)
 
@@ -344,6 +337,16 @@ def process_articles(args):
                     % (minutes, seconds))
 
         logger.info("Partition file '%s' completed successfully", path)
+
+    logger.info('About to generate hypernyms')
+
+    hypernyms = {}
+    for wc in session.query(WikiClass):
+        class_name = wc.class_name
+        hypernyms[class_name] = get_hypernyms(wc.class_name)
+    insert_hypernyms(hypernyms)
+
+    logger.info('Finished generating hypernyms for %s classes', len(hypernyms))
 
     logger.info('This message confirms that WikiThingsDB create completed '
                 'successfully on all %d partitions.', len(partition_files))
