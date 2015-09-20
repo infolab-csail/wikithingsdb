@@ -1,26 +1,46 @@
+import re
 from wikithingsdb.engine import engine
 from wikithingsdb.models import Page, Redirect, WikiClass, Type, DbpediaClass
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 session = sessionmaker(bind=engine)()
+first_cap_re = re.compile('(.)([A-Z][a-z]+)')
+all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+def _remove_underscores(name):
+    return name.replace('_', ' ')
 
 
-# def _clean_query(query):
-#     query = query.replace(' ', '_')
-#     query = query.lower()
-#     return query
+def _add_underscores(name):
+    return name.replace(' ', '_')
+
+
+def _remove_camelcase(name):
+    if name == "owl:Thing":
+        return "thing"
+    else:
+        s1 = first_cap_re.sub(r'\1 \2', name)
+        return all_cap_re.sub(r'\1 \2', s1).lower()
+
+
+def _add_camelcase(name):
+    title = name.title()
+    if title == "Thing":
+        return "owl:" + title
+    else:
+        return title.replace(' ', '')
 
 
 # What are all the ways to refer to ARTICLE?
 def types_of_article(article):
-    """Given a case-sensitive article title (string with underscores
-    instead of spaces), return the types extracted from the article's
-    first sentence by Whoami (as a list of strings).
+    """Given a case-sensitive article title, return the types
+    extracted from the article's first sentence by Whoami (as a list
+    of strings).
 
     If no such article is found, raises a KeyError.
     """
-    # article = _clean_query(article)
+    article = _add_underscores(article)
     try:
         result = session.query(Page).\
             join(Page.types).\
@@ -39,12 +59,12 @@ def types_of_article(article):
 
 
 def classes_of_article(article):
-    """Given a case-sensitive article title (string with underscores
-    instead of spaces), return the infoboxes of the article (as a list
-    of strings).
+    """Given a case-sensitive article title, return the infoboxes of
+    the article (as a list of strings).
 
     If no such article is found, raises a KeyError.
     """
+    article = _add_underscores(article)
     try:
         result = session.query(Page).\
             join(Page.classes).\
@@ -63,11 +83,9 @@ def classes_of_article(article):
 
 
 def hypernyms_of_article(article):
-    """Given a case-sensitive article title (string with underscores
-    instead of spaces), return a dictionary where each key is an
-    infobox of the article and its values are a list of hypernyms (as
-    a list of strings) from DBpedia's Ontology Classes. Hypernyms are
-    UpperCamelCase.
+    """Given a case-sensitive article title, return a dictionary where
+    each key is an infobox of the article and its values are a list of
+    hypernyms (as a list of strings) from DBpedia's Ontology Classes.
 
     If no such article is found, raises a KeyError.
     """
@@ -78,7 +96,7 @@ def hypernyms_of_article(article):
 def hypernyms_of_class(w_class):
     """Given a lowercase infobox name (string with hyphens instead of
     spaces), return a list of hypernyms (as a list of strings) from
-    DBpedia's Ontology Classes. Hypernyms are UpperCamelCase.
+    DBpedia's Ontology Classes.
 
     If no such class is found, raises a KeyError.
     """
@@ -96,14 +114,13 @@ def hypernyms_of_class(w_class):
         error."""
         )
 
-    return [x.dpedia_class for x in result.dbpedia_classes]
+    return [_remove_camelcase(x.dpedia_class) for x in result.dbpedia_classes]
 
 
 # What are all the articles of TYPE, CLASS, DBPEDIA_CLASS?
 def articles_of_type(given_type):
     """Given a lowercase type (spaces allowed, string), return all
-    articles of that type (list of strings with underscores instead of
-    spaces)
+    articles of that type.
 
     If no such type is found, raises a KeyError.
     """
@@ -119,13 +136,12 @@ def articles_of_type(given_type):
         error."""
         )
 
-    return [x.page_title for x in result.page]
+    return [_remove_underscores(x.page_title) for x in result.page]
 
 
 def articles_of_class(w_class):
     """Given a lowercase infobox name (string with hyphens instead of
-    spaces), return all articles of that type (list of strings with
-    underscores instead of spaces)
+    spaces), return all articles of that type.
 
     If no such class is found, raises a KeyError.
     """
@@ -141,15 +157,14 @@ def articles_of_class(w_class):
         error."""
         )
 
-    return [x.page_title for x in result.page]
+    return [_remove_underscores(x.page_title) for x in result.page]
 
 
 def articles_of_hypernym(hypernym):
-    """Given an UpperCamelCase hypernym from DBpedia (string), return
-    a dictionary where each key is an infobox (string with hyphens
-    instead of spaces) of that hypernym and each value is a list of
-    articles of that infobox (list of strings with underscores instead
-    of spaces)
+    """Given a hypernym from DBpedia (string), return a dictionary
+    where each key is an infobox (string with hyphens instead of
+    spaces) of that hypernym and each value is a list of articles of
+    that infobox. Note: use 'thing' instead of 'owl:Thing'.
 
     If no such hypernym is found, raises a KeyError.
     """
@@ -158,12 +173,13 @@ def articles_of_hypernym(hypernym):
 
 
 def classes_of_hypernym(hypernym):
-    """Given an UpperCamelCase hypernym from DBpedia (string), return
-    a list of infoboxes of that hypernym (list of strings with hyphens
-    instead of spaces)
+    """Given a hypernym from DBpedia (string), return a list of
+    infoboxes of that hypernym (list of strings with hyphens instead
+    of spaces). Note: use 'thing' instead of 'owl:Thing'.
 
     If no such hypernym is found, raises a KeyError.
     """
+    hypernym = _add_camelcase(hypernym)
     try:
         result = session.query(DbpediaClass).\
             filter_by(dpedia_class=hypernym).one()
@@ -189,10 +205,11 @@ def redirects_of_article(article):
 
     If no such article is found, raises a KeyError.
     """
+    article = _add_underscores(article)
     results = session.query(Redirect).\
         join(Redirect.page).\
         filter(Redirect.rd_title == article).all()
     if len(results) == 0:
         raise KeyError("No such article: " + article)
 
-    return [x.page.page_title for x in results]
+    return [_remove_underscores(x.page.page_title) for x in results]
