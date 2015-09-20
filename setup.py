@@ -1,4 +1,5 @@
 from setuptools import setup
+import multiprocessing
 
 setup(
     name='wikithingsdb',
@@ -22,9 +23,13 @@ setup(
     dependency_links=[
         'git+https://github.com/infolab-csail/defexpand.git#egg=defexpand'
     ],
+    tests_require=[
+        'nose>=1.0'
+    ],
     entry_points={
         'console_scripts': [
             'wikithingsdb = wikithingsdb.create:main'
         ],
     },
+    test_suite='nose.collector',
 )
