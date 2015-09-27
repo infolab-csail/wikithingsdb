@@ -1,5 +1,9 @@
 from setuptools import setup
+
+# import multiprocessing to prevent nose error when running tests:
+# TypeError: 'NoneType' object is not callable
 import multiprocessing
+
 
 setup(
     name='wikithingsdb',
