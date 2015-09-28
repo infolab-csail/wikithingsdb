@@ -3,34 +3,65 @@
 from wikithingsdb.engine import engine
 from sqlalchemy import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String
-from sqlalchemy import Table, Text
+from sqlalchemy import Table
 from sqlalchemy.dialects import mysql
+from sqlalchemy.orm import mapper
 
 Base = declarative_base()
 
 
-article_classes = Table('article_classes', Base.metadata,
-                        Column(
-                            'a_id', mysql.INTEGER(8, unsigned=True),
-                            ForeignKey('page.page_id')),
-                        Column('c_id', Integer, ForeignKey('classes.id'))
-                        )
+article_classes = Table(
+    'article_classes',
+    Base.metadata,
+    Column('a_id', mysql.INTEGER(8, unsigned=True), ForeignKey('page.page_id'),
+           primary_key=True),
+    Column('c_id', Integer, ForeignKey('classes.id'), primary_key=True),
+)
 
 
-hypernyms = Table('hypernyms', Base.metadata,
-                  Column('c_id', Integer, ForeignKey('classes.id')),
-                  Column('d_id', Integer, ForeignKey('dbpedia_classes.id'))
-                  )
+article_types = Table(
+    'article_types',
+    Base.metadata,
+    Column('a_id', mysql.INTEGER(8, unsigned=True), ForeignKey('page.page_id'),
+           primary_key=True),
+    Column('t_id', Integer, ForeignKey('types.id'), primary_key=True),
+)
 
 
-article_types = Table('article_types', Base.metadata,
-                      Column(
-                          'a_id', mysql.INTEGER(8, unsigned=True),
-                          ForeignKey('page.page_id')),
-                      Column('t_id', Integer, ForeignKey('types.id'))
-                      )
+hypernyms = Table(
+    'hypernyms',
+    Base.metadata,
+    Column('c_id', Integer, ForeignKey('classes.id'), primary_key=True),
+    Column('d_id', Integer, ForeignKey('dbpedia_classes.id'), primary_key=True),
+)
+
+
+class ArticleClass(object):
+
+    def __init__(self, a_id, c_id):
+        self.a_id = a_id
+        self.c_id = c_id
+
+
+class ArticleType(object):
+
+    def __init__(self, a_id, t_id):
+        self.a_id = a_id
+        self.t_id = t_id
+
+
+class Hypernym(object):
+
+    def __init__(self, c_id, d_id):
+        self.c_id = c_id
+        self.d_id = d_id
+
+
+mapper(ArticleClass, article_classes)
+mapper(ArticleType, article_types)
+mapper(Hypernym, hypernyms)
 
 
 class Page(Base):
@@ -87,7 +118,7 @@ class Type(Base):
     __tablename__ = "types"
 
     id = Column(Integer, primary_key=True)
-    type = Column(String(50), unique=True, index=True)
+    type = Column(String(100), unique=True, index=True)
 
     def __init__(self, type):
         self.type = type
@@ -100,7 +131,7 @@ class WikiClass(Base):
     __tablename__ = "classes"
 
     id = Column(Integer, primary_key=True)
-    class_name = Column(String(50), unique=True, index=True)
+    class_name = Column(String(100), unique=True, index=True)
 
     dbpedia_classes = relationship(
         'DbpediaClass', secondary=hypernyms, backref='classes')
@@ -116,7 +147,7 @@ class DbpediaClass(Base):
     __tablename__ = "dbpedia_classes"
 
     id = Column(Integer, primary_key=True)
-    dpedia_class = Column(String(50), unique=True, index=True)
+    dpedia_class = Column(String(100), unique=True, index=True)
 
     def __init__(self, dpedia_class):
         self.dpedia_class = dpedia_class

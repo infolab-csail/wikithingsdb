@@ -6,16 +6,7 @@
 if [ -d "$1" ] && [ -d "$2" ]; then
     date
     echo "Merging all files under $1 into $2merged.xml"
-    find $1 -name wiki_* -print0 | xargs -0 -I file cat file > $2/merged-tmp.xml
-
-    echo "Inserting <root> at top of file"
-    echo "<root>" > $2/begin-tmp
-    cat $2/begin-tmp $2/merged-tmp.xml > $2/merged.xml
-    rm -f $2/begin-tmp 
-    rm -f $2/merged-tmp.xml
-
-    echo "Inserting </root> end of file"
-    echo "</root>" >> $2/merged.xml
+    find $1 -name wiki_* -print0 | xargs -0 -I file cat file > $2/merged.xml
 
     echo "Replacing & with &amp;"
     sed -i 's/&/&amp;/g' $2/merged.xml
