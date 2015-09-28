@@ -18,13 +18,15 @@ Follow these steps before running `wikithingsdb`.
   $ mysql -u root -D py_wikipedia -e "CREATE DATABASE py_wikipedia";
   ```
 
-1. Download the redirect dump
+1. Download the page and redirect dump
   ```bash
-  $ curl -O https://dumps.wikimedia.org/enwiki/latest/enwiki-YYYYMMDD-redirect.sql.gz -O enwiki-YYYYMMDD-redirect.sql.gz
+  $ curl -O https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-page.sql.gz enwiki-YYYYMMDD-page.sql.gz
+  $ curl -O https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-redirect.sql.gz enwiki-YYYYMMDD-redirect.sql.gz
   ```
 
 1. Load the `page` and `redirect` tables
   ```bash
+  $ zcat enwiki-YYYYMMDD-page.sql.gz | mysql -u root -D py_wikipedia
   $ zcat enwiki-YYYYMMDD-redirect.sql.gz | mysql -u root -D py_wikipedia
   ```
 
@@ -32,12 +34,12 @@ Follow these steps before running `wikithingsdb`.
 
 1. Download the article dump
   ```bash
-  $ curl -O https://dumps.wikimedia.org/enwiki/latest/enwiki-YYYYMMDD-pages-articles.xml.bz2 enwiki-YYYYMMDD-pages-articles.xml.bz2
+  $ curl -O https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2 enwiki-YYYYMMDD-pages-articles.xml.bz2
   ```
   
 1. Run WikiExtractor
   ```bash
-  $ bzip2 -dc enwiki-YYYYMMDD-pages-articles.xml.bz2| python /path/to/defexpand/scripts/WikiExtractor.py -l -o extracted
+  $ bzip2 -dc enwiki-YYYYMMDD-pages-articles.xml.bz2 | python /path/to/defexpand/scripts/WikiExtractor.py -l -o extracted
   ```
   
 1. Merge the output of WikiExtractor 
