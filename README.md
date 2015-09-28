@@ -56,6 +56,8 @@ Follow these steps before running `wikithingsdb`.
 
 # Create
 
+First, make sure this line is in your bashrc: `source /data/infolab/misc/elasticstart/elasticstart.env`. If not, add it and refresh your prompt.
+
 To create WikiThingsDB, run:
 
 ```bash
