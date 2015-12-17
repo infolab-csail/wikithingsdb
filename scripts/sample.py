@@ -1,5 +1,15 @@
 from wikithingsdb import fetch
 
+"""
+Fetch a bunch of types, classes, hypernyms, and redirects from
+WikithingsDB for demoing, sanity checks, and testing.
+
+By default prints to standard out, but the script is most useful when
+piped into an output file like this:
+
+   python sample.py > out.log
+
+"""
 
 def main():
 
