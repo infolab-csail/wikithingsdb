@@ -1,5 +1,6 @@
-[![Stories in Ready](https://badge.waffle.io/infolab-csail/wikithingsdb.png?label=ready&title=Ready)](https://waffle.io/infolab-csail/wikithingsdb)
 # WikiThingsDB
+[![Stories in Ready](https://badge.waffle.io/infolab-csail/wikithingsdb.png?label=ready&title=Ready)](https://waffle.io/infolab-csail/wikithingsdb)
+
 A DB of Synonyms, Paraphrases, and Hypernyms for all Wiki Things (Articles)
 
 ## Install
