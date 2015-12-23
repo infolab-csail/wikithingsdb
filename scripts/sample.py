@@ -1,4 +1,5 @@
 from wikithingsdb import fetch
+import time
 
 """
 Fetch a bunch of types, classes, hypernyms, and redirects from
@@ -11,23 +12,22 @@ piped into an output file like this:
 
 """
 
+
+def time_fetch(f, symbol):
+    print "%s('%s')" % (f.__name__, symbol)  # prints out the function name
+    start = time.time()
+    print f(symbol)
+    print " .. took: %s" % (time.time() - start)
+
+
 def main():
 
     try:
-        print "types_of_article('Brooklyn Bridge')"
-        print fetch.types_of_article('Brooklyn Bridge')
-
-        print "classes_of_article('Brooklyn Bridge')"
-        print fetch.classes_of_article('Brooklyn Bridge')
-
-        print "hypernyms_of_article('Brooklyn Bridge')"
-        print fetch.hypernyms_of_article('Brooklyn Bridge')
-
-        print "hypernyms_of_class('bridge')"
-        print fetch.hypernyms_of_class('bridge')
-
-        print "redirects_of_article('Brooklyn Bridge')"
-        print fetch.redirects_of_article('Brooklyn Bridge')
+        time_fetch(fetch.types_of_article, 'Brooklyn Bridge')
+        time_fetch(fetch.classes_of_article, 'Brooklyn Bridge')
+        time_fetch(fetch.hypernyms_of_article, 'Brooklyn Bridge')
+        time_fetch(fetch.hypernyms_of_class, 'bridge')
+        time_fetch(fetch.redirects_of_article, 'Brooklyn Bridge')
     except Exception, e:
         print e
         pass
@@ -35,20 +35,11 @@ def main():
     print "-----------------------"
 
     try:
-        print "types_of_article('East River')"
-        print fetch.types_of_article('East River')
-
-        print "classes_of_article('East River')"
-        print fetch.classes_of_article('East River')
-
-        print "hypernyms_of_article('East River')"
-        print fetch.hypernyms_of_article('East River')
-
-        print "hypernyms_of_class('river')"
-        print fetch.hypernyms_of_class('river')
-
-        print "redirects_of_article('East River')"
-        print fetch.redirects_of_article('East River')
+        time_fetch(fetch.types_of_article, 'East River')
+        time_fetch(fetch.classes_of_article, 'East River')
+        time_fetch(fetch.hypernyms_of_article, 'East River')
+        time_fetch(fetch.hypernyms_of_class, 'river')
+        time_fetch(fetch.redirects_of_article, 'East River')
     except Exception, e:
         print e
         pass
@@ -56,20 +47,22 @@ def main():
     print "-----------------------"
 
     try:
-        print "types_of_article('Bill Clinton')"
-        print fetch.types_of_article('Bill Clinton')
+        time_fetch(fetch.types_of_article, 'Bill Clinton')
+        time_fetch(fetch.classes_of_article, 'Bill Clinton')
+        time_fetch(fetch.hypernyms_of_article, 'Bill Clinton')
+        time_fetch(fetch.hypernyms_of_class, 'president')
+        time_fetch(fetch.redirects_of_article, 'Bill Clinton')
+    except Exception, e:
+        print e
+        pass
 
-        print "classes_of_article('Bill Clinton')"
-        print fetch.classes_of_article('Bill Clinton')
+    print "-----------------------"
 
-        print "hypernyms_of_article('Bill Clinton')"
-        print fetch.hypernyms_of_article('Bill Clinton')
-
-        print "hypernyms_of_class('president')"
-        print fetch.hypernyms_of_class('president')
-
-        print "redirects_of_article('Bill Clinton')"
-        print fetch.redirects_of_article('Bill Clinton')
+    try:
+        time_fetch(fetch.articles_of_type, 'officeholder')
+        time_fetch(fetch.articles_of_class, 'officeholder')
+        time_fetch(fetch.articles_of_hypernym, 'politician')
+        time_fetch(fetch.classes_of_hypernym, 'place')
     except Exception, e:
         print e
         pass
