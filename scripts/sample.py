@@ -25,6 +25,8 @@ def time_fetch(f, symbol):
 
 def main():
 
+    print "######### hypERnyms #########"
+
     try:
         time_fetch(fetch.types_of_article, 'Brooklyn Bridge')
         time_fetch(fetch.classes_of_article, 'Brooklyn Bridge')
@@ -53,6 +55,28 @@ def main():
         time_fetch(fetch.hypernyms_of_article, 'Bill Clinton')
         time_fetch(fetch.hypernyms_of_class, 'president')
         time_fetch(fetch.redirects_of_article, 'Bill Clinton')
+    except Exception, e:
+        print e
+
+    print "-----------------------"
+
+    print "######### hyPOnyms #########"
+
+    try:
+        time_fetch(fetch.articles_of_type, 'bridge')
+        time_fetch(fetch.articles_of_class, 'nrhp')
+        time_fetch(fetch.articles_of_hypernym, 'building')
+        time_fetch(fetch.classes_of_hypernym, 'route of transportation')
+    except Exception, e:
+        print e
+
+    print "-----------------------"
+
+    try:
+        time_fetch(fetch.articles_of_type, 'strait')
+        time_fetch(fetch.articles_of_class, 'river')
+        time_fetch(fetch.articles_of_hypernym, 'body of water')
+        time_fetch(fetch.classes_of_hypernym, 'stream')
     except Exception, e:
         print e
 
