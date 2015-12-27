@@ -17,10 +17,10 @@ def time_fetch(f, symbol):
     """Print function('input''), the output, and how long it took to
     run
     """
-    print "%s('%s')" % (f.__name__, symbol)  # prints out the function name
+    print "{function}('{arg}')".format(function=f.__name__, arg=symbol)  # prints out the function name
     start = time.time()
     print f(symbol)
-    print " .. took: %s" % (time.time() - start)
+    print " ... took: {how_much}".format(how_much = time.time() - start)
 
 
 def main():
