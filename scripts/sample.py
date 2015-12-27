@@ -14,6 +14,9 @@ piped into an output file like this:
 
 
 def time_fetch(f, symbol):
+    """Print function('input''), the output, and how long it took to
+    run
+    """
     print "%s('%s')" % (f.__name__, symbol)  # prints out the function name
     start = time.time()
     print f(symbol)
