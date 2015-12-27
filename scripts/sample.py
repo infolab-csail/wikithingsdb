@@ -30,7 +30,6 @@ def main():
         time_fetch(fetch.redirects_of_article, 'Brooklyn Bridge')
     except Exception, e:
         print e
-        pass
 
     print "-----------------------"
 
@@ -42,7 +41,6 @@ def main():
         time_fetch(fetch.redirects_of_article, 'East River')
     except Exception, e:
         print e
-        pass
 
     print "-----------------------"
 
@@ -54,7 +52,6 @@ def main():
         time_fetch(fetch.redirects_of_article, 'Bill Clinton')
     except Exception, e:
         print e
-        pass
 
     print "-----------------------"
 
@@ -65,7 +62,6 @@ def main():
         time_fetch(fetch.classes_of_hypernym, 'place')
     except Exception, e:
         print e
-        pass
 
     print "DONE"
 
