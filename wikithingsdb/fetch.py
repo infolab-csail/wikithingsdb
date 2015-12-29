@@ -117,7 +117,7 @@ def hypernyms_of_class_from_db(w_class):
 
     If no such class is found, raises a KeyError.
 
-    Depricated: uses the database, resulting in slow, unordered
+    Deprecated: uses the database, resulting in slow, unordered
     results. Use hypernyms_of_class() instead.
     """
     try:
