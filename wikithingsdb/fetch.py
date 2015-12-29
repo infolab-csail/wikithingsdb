@@ -1,4 +1,5 @@
 import re
+from wikithingsdb.create import get_hypernyms
 from wikithingsdb.engine import engine
 from wikithingsdb.models import Page, Redirect, WikiClass, Type, DbpediaClass
 from sqlalchemy.orm import sessionmaker
@@ -99,6 +100,25 @@ def hypernyms_of_class(w_class):
     DBpedia's Ontology Classes.
 
     If no such class is found, raises a KeyError.
+    """
+
+    result = get_hypernyms(w_class)
+
+    if result == []:
+        raise KeyError("No such class: " + w_class)
+    else:
+        return [_remove_camelcase(x) for x in result]
+
+
+def hypernyms_of_class_from_db(w_class):
+    """Given a lowercase infobox name (string with hyphens instead of
+    spaces), return a list of hypernyms (as a list of strings) from
+    DBpedia's Ontology Classes.
+
+    If no such class is found, raises a KeyError.
+
+    Deprecated: uses the database, resulting in slow, unordered
+    results. Use hypernyms_of_class() instead.
     """
     try:
         result = session.query(WikiClass).\
