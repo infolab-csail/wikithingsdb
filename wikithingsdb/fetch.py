@@ -1,9 +1,9 @@
 import re
+from peewee import DoesNotExist
 from wikithingsdb.create import get_hypernyms
-from wikithingsdb.engine import engine
-from wikithingsdb.models import Page, Redirect, WikiClass, Type, DbpediaClass
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from wikithingsdb.models import db, Article, Type, WikiClass, DbpediaClass,\
+    ArticleClass, ArticleType, Hypernym
+
 
 session = sessionmaker(bind=engine)()
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
@@ -34,7 +34,7 @@ def _add_camelcase(name):
 
 
 # What are all the ways to refer to ARTICLE?
-def types_of_article(article):
+def types_of_article(article, limit=None):
     """Given a case-sensitive article title, return the types
     extracted from the article's first sentence by Whoami (as a list
     of strings).
@@ -43,23 +43,26 @@ def types_of_article(article):
     """
     article = _add_underscores(article)
     try:
-        result = session.query(Page).\
-            join(Page.types).\
-            filter(Page.page_title == article).one()
-    except NoResultFound:
+        if limit:
+            result = (Type
+                      .select()
+                      .join(ArticleType)
+                      .join(Article)
+                      .where(Article.title == article)
+                      .limit(limit))
+        else:
+            result = (Type
+                      .select()
+                      .join(ArticleType)
+                      .join(Article)
+                      .where(Article.title == article))
+    except DoesNotExist:
         raise KeyError("No such article: " + article)
-    except MultipleResultsFound:
-        raise RuntimeError(
-        """This should not have happened. Please report to
-        https://github.com/infolab-csail/wikithingsdb/issues and
-        include the full stacktrace and steps to reproduce the
-        error."""
-        )
-
-    return [x.type for x in result.types]
+    
+    return [x.type for x in result]
 
 
-def classes_of_article(article):
+def classes_of_article(article, limit=None):
     """Given a case-sensitive article title, return the infoboxes of
     the article (as a list of strings).
 
@@ -67,22 +70,25 @@ def classes_of_article(article):
     """
     article = _add_underscores(article)
     try:
-        result = session.query(Page).\
-            join(Page.classes).\
-            filter(Page.page_title == article).one()
-    except NoResultFound:
+        if limit:
+            result = (WikiClass
+                      .select()
+                      .join(ArticleClass)
+                      .join(Article)
+                      .where(Article.title == article)
+                      .limit(limit))
+        else:
+            result = (WikiClass
+                      .select()
+                      .join(ArticleClass)
+                      .join(Article)
+                      .where(Article.title == article))
+    except DoesNotExist:
         raise KeyError("No such article: " + article)
-    except MultipleResultsFound:
-        raise RuntimeError(
-        """This should not have happened. Please report to
-        https://github.com/infolab-csail/wikithingsdb/issues and
-        include the full stacktrace and steps to reproduce the
-        error."""
-        )
-
-    return [x.class_name for x in result.classes]
-
-
+    
+    return [x.class_name for x in result]
+    
+    
 def hypernyms_of_article(article):
     """Given a case-sensitive article title, return a dictionary where
     each key is an infobox of the article and its values are a list of
@@ -92,6 +98,36 @@ def hypernyms_of_article(article):
     """
     return {w_class: hypernyms_of_class(w_class)
             for w_class in classes_of_article(article)}
+
+
+def hypernyms_of_article_all(article, limit=None):
+    """Given a case-sensitive article title, return all hypernyms of
+    that article (as a list of strings) from DBpedia's Ontology
+    Classes.
+
+    If no such article is found, raises a KeyError.
+    """
+    article = _add_underscores(article)
+    try:
+        if limit:
+            result = (DbpediaClass
+                      .select()
+                      .join(Hypernym)
+                      .join(ArticleClass)
+                      .join(Article)
+                      .where(Article.title == article)
+                      .limit(limit))
+        else:
+            result = (DbpediaClass
+                      .select()
+                      .join(Hypernym)
+                      .join(ArticleClass)
+                      .join(Article)
+                      .where(Article.title == article))
+    except DoesNotExist:
+        raise KeyError("No such article: " + article)
+    
+    return [_remove_camelcase(x.dbpedia_class) for x in result]
 
 
 def hypernyms_of_class(w_class):
@@ -110,7 +146,7 @@ def hypernyms_of_class(w_class):
         return [_remove_camelcase(x) for x in result]
 
 
-def hypernyms_of_class_from_db(w_class):
+def hypernyms_of_class_from_db(w_class, limit=None):
     """Given a lowercase infobox name (string with hyphens instead of
     spaces), return a list of hypernyms (as a list of strings) from
     DBpedia's Ontology Classes.
@@ -120,64 +156,78 @@ def hypernyms_of_class_from_db(w_class):
     Deprecated: uses the database, resulting in slow, unordered
     results. Use hypernyms_of_class() instead.
     """
-    try:
-        result = session.query(WikiClass).\
-            join(WikiClass.dbpedia_classes).\
-            filter(WikiClass.class_name == w_class).one()
-    except NoResultFound:
-        raise KeyError("No such class: " + w_class)
-    except MultipleResultsFound:
-        raise RuntimeError(
-        """This should not have happened. Please report to
-        https://github.com/infolab-csail/wikithingsdb/issues and
-        include the full stacktrace and steps to reproduce the
-        error."""
-        )
 
-    return [_remove_camelcase(x.dpedia_class) for x in result.dbpedia_classes]
+    try:
+        if limit:
+            result = (DbpediaClass
+                      .select()
+                      .join(Hypernym)
+                      .join(WikiClass)
+                      .where(WikiClass.class_name == w_class)
+                      .limit(limit))
+        else:
+            result = (DbpediaClass
+                      .select()
+                      .join(Hypernym)
+                      .join(WikiClass)
+                      .where(WikiClass.class_name == w_class))
+    except DoesNotExist:
+        raise KeyError("No such article: " + article)
+    
+    return [_remove_camelcase(x.dbpedia_class) for x in result]
 
 
 # What are all the articles of TYPE, CLASS, DBPEDIA_CLASS?
-def articles_of_type(given_type):
+def articles_of_type(given_type, limit=None):
     """Given a lowercase type (spaces allowed, string), return all
     articles of that type.
 
     If no such type is found, raises a KeyError.
     """
     try:
-        result = session.query(Type).filter_by(type=given_type).one()
-    except NoResultFound:
+        if limit:
+            result = (Article
+                      .select()
+                      .join(ArticleType)
+                      .join(Type)
+                      .where(Type.type == given_type)
+                      .limit(limit))
+        else:
+            result = (Article
+                      .select()
+                      .join(ArticleType)
+                      .join(Type)
+                      .where(Type.type == given_type))
+    except DoesNotExist:
         raise KeyError("No such type: " + given_type)
-    except MultipleResultsFound:
-        raise RuntimeError(
-        """This should not have happened. Please report to
-        https://github.com/infolab-csail/wikithingsdb/issues and
-        include the full stacktrace and steps to reproduce the
-        error."""
-        )
-
-    return [_remove_underscores(x.page_title) for x in result.page]
+    
+    return [_remove_underscores(x.title) for x in result]
 
 
-def articles_of_class(w_class):
+def articles_of_class(w_class, limit=None):
     """Given a lowercase infobox name (string with hyphens instead of
     spaces), return all articles of that type.
 
     If no such class is found, raises a KeyError.
     """
     try:
-        result = session.query(WikiClass).filter_by(class_name=w_class).one()
-    except NoResultFound:
+        if limit:
+            result = (Article
+                      .select()
+                      .join(ArticleClass)
+                      .join(WikiClass)
+                      .where(WikiClass.class_name == w_class)
+                      .limit(limit))
+        else:
+            result = (Article
+                      .select()
+                      .join(ArticleClass)
+                      .join(WikiClass)
+                      .where(WikiClass.class_name == w_class))
+    except DoesNotExist:
         raise KeyError("No such class: " + w_class)
-    except MultipleResultsFound:
-        raise RuntimeError(
-        """This should not have happened. Please report to
-        https://github.com/infolab-csail/wikithingsdb/issues and
-        include the full stacktrace and steps to reproduce the
-        error."""
-        )
-
-    return [_remove_underscores(x.page_title) for x in result.page]
+    
+    return [_remove_underscores(x.title) for x in result]
 
 
 def articles_of_hypernym(hypernym):
@@ -192,7 +242,37 @@ def articles_of_hypernym(hypernym):
             for w_class in classes_of_hypernym(hypernym)}
 
 
-def classes_of_hypernym(hypernym):
+def articles_of_hypernym_all(hypernym, limit=None):
+    """Given a hypernym from DBpedia (string), return a list of
+    articles of that hypernym. Note: use 'thing' instead of
+    'owl:Thing'.
+
+    If no such hypernym is found, raises a KeyError.
+    """
+    hypernym = _add_camelcase(hypernym)
+    try:
+        if limit:
+            result = (Article
+                      .select()
+                      .join(ArticleClass)
+                      .join(Hypernym)
+                      .join(DbpediaClass)
+                      .where(DbpediaClass.dpedia_class == hypernym)
+                      .limit(limit))
+        else:
+            result = (Article
+                      .select()
+                      .join(ArticleClass)
+                      .join(Hypernym)
+                      .join(DbpediaClass)
+                      .where(DbpediaClass.dpedia_class == hypernym))
+    except DoesNotExist:
+        raise KeyError("No such hypernym: " + hypernym)
+    
+    return [_remove_underscores(x.title) for x in result]
+
+
+def classes_of_hypernym(hypernym, limit=None):
     """Given a hypernym from DBpedia (string), return a list of
     infoboxes of that hypernym (list of strings with hyphens instead
     of spaces). Note: use 'thing' instead of 'owl:Thing'.
@@ -201,35 +281,20 @@ def classes_of_hypernym(hypernym):
     """
     hypernym = _add_camelcase(hypernym)
     try:
-        result = session.query(DbpediaClass).\
-            filter_by(dpedia_class=hypernym).one()
-    except NoResultFound:
-        raise KeyError("No such hypernym: " + hypernym)
-    except MultipleResultsFound:
-        raise RuntimeError(
-        """This should not have happened. Please report to
-        https://github.com/infolab-csail/wikithingsdb/issues and
-        include the full stacktrace and steps to reproduce the
-        error."""
-        )
-
-    return [x.class_name for x in result.classes]
-
-
-# Symbols & Synonyms from redirects
-def redirects_of_article(article):
-    """Given a case-sensitive article title (string with underscores
-    instead of spaces), return a list of articles (list of strings
-    with underscores instead of spaces) that redirect to your given
-    article.
-
-    If no such article is found, raises a KeyError.
-    """
-    article = _add_underscores(article)
-    results = session.query(Redirect).\
-        join(Redirect.page).\
-        filter(Redirect.rd_title == article).all()
-    if len(results) == 0:
+        if limit:
+            result = (WikiClass
+                      .select()
+                      .join(Hypernym)
+                      .join(DbpediaClass)
+                      .where(DbpediaClass.dpedia_class == hypernym)
+                      .limit(limit))
+        else:
+            result = (WikiClass
+                      .select()
+                      .join(Hypernym)
+                      .join(DbpediaClass)
+                      .where(DbpediaClass.dpedia_class == hypernym))
+    except DoesNotExist:
         raise KeyError("No such article: " + article)
-
-    return [_remove_underscores(x.page.page_title) for x in results]
+    
+    return [x.class_name for x in result]
