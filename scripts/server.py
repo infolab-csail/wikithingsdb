@@ -32,10 +32,27 @@ def get_types():
     #         response[function] = returned
 
     # for now, fake some data
-    response['types_of_article'] = ['foo', 'bar', 'baz']
-    response['classes_of_article'] = ['bar']
-    response['hypernyms_of_article'] = ['bar', 'aba', 'zaba', 'boom', 'thing']
-    response['redirects_of_article'] = ['first really really long thing like crazy long lets try to push the limit here', 'second', 'third', 'fourth']
+    # if article == "Brooklyn Bridge":
+    # if 'types_of_article' in methods:
+    response['types_of_article'] = ['bridge',\
+                                    'cable-stayed/suspension bridge',\
+                                    'hybrid cable-stayed/suspension bridge']
+    # if 'classes_of_article' in methods:
+    response['classes_of_article'] = ['nrhp', 'bridge']
+    # if 'hypernyms_of_article' in methods:
+    response['hypernyms_of_article'] = ['bridge',\
+                                        'route of transportation',\
+                                        'infrastructure',\
+                                        'architectural structure',\
+                                        'place',\
+                                        'thing',\
+                                        'building',\
+                                        'structure']
+    # if 'redirects_of_article' in methods:
+    # response['redirects_of_article'] = ['The Brooklyn Bridge',\
+    #                                     'Brooklyn bridge',\
+    #                                     'East River Bridge',\
+    #                                     "I've got a bridge to sell you"]
     app.logger.debug("My response is:")
     app.logger.debug(response)
     
