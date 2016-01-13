@@ -17,7 +17,7 @@ setup(
     ],
     install_requires=[
         'SQLAlchemy',
-        'Flask'
+        'Flask',
         'MySQL-python',
         'nltk',
         'unidecode',
