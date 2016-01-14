@@ -65,12 +65,24 @@ class ArticleClass(Model):
     a_id = ForeignKeyField(Article)
     c_id = ForeignKeyField(WikiClass)
 
+    class Meta:
+        database = db
+        db_table = 'article_classes'
+
 
 class ArticleType(Model):
     a_id = ForeignKeyField(Article)
     t_id = ForeignKeyField(Type)
 
+    class Meta:
+        database = db
+        db_table = 'article_types'
+
 
 class Hypernym(Model):
     c_id = ForeignKeyField(WikiClass)
     d_id = ForeignKeyField(DbpediaClass)
+
+    class Meta:
+        database = db
+        db_table = 'hypernyms'
