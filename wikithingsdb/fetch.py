@@ -5,7 +5,6 @@ from wikithingsdb.models import db, Article, Type, WikiClass, DbpediaClass,\
     ArticleClass, ArticleType, Hypernym
 
 
-session = sessionmaker(bind=engine)()
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
 
