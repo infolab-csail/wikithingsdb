@@ -1,5 +1,5 @@
 from peewee import ForeignKeyField, IntegerField, Model, TextField
-from playhouse.postgres_ext import PostgresqlExtDatabase, ServerSide
+from playhouse.postgres_ext import PostgresqlExtDatabase
 from playhouse.shortcuts import RetryOperationalError
 
 # -------
@@ -16,7 +16,6 @@ class PostgresqlExtRetryDatabase(RetryOperationalError, PostgresqlExtDatabase):
     pass
 
 
-# TODO: change names
 db = PostgresqlExtRetryDatabase('wikithingsdb', user='wikithingsdb',
                                 register_hstore=False)
 
@@ -54,7 +53,7 @@ class WikiClass(Model):
 
 class DbpediaClass(Model):
     id = IntegerField(primary_key=True)
-    dpedia_class = TextField(index=True, unique=True)
+    dbpedia_class = TextField(index=True, unique=True)
 
     class Meta:
         database = db

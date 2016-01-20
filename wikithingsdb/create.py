@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
-
 from defexpand import infoclass
+
+ontology = infoclass.get_info_ontology()
 
 
 def get_hypernyms(wiki_class):
