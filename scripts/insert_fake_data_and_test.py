@@ -7,7 +7,7 @@ Insert fake data into the DB and test relationships
 import unittest
 
 from wikithingsdb.dbutil import insert_batch
-from wikithingsdb import fetch
+from wikithingsdb import query
 from wikithingsdb.models import Article, Type, WikiClass, DbpediaClass, \
     ArticleClass, ArticleType, Hypernym
 
@@ -89,55 +89,55 @@ class TestRelationships(unittest.TestCase):
 
     def test_articles_of_class(self):
         self.assertItemsEqual(["Paris", "London"],
-                              fetch.articles_of_class("city"))
+                              query.articles_of_class("city"))
 
     def test_classes_of_article(self):
         self.assertItemsEqual(["president"],
-                              fetch.classes_of_article("Bill Clinton"))
+                              query.classes_of_article("Bill Clinton"))
         self.assertItemsEqual(["city", "french commune"],
-                              fetch.classes_of_article("Paris"))
+                              query.classes_of_article("Paris"))
 
     def test_classes_of_article_with_limit(self):
-        self.assertEquals(1, len(fetch.classes_of_article("Paris", limit=1)))
+        self.assertEquals(1, len(query.classes_of_article("Paris", limit=1)))
 
     def test_articles_of_type(self):
         self.assertItemsEqual(["Bill Clinton", "Barack Obama"],
-                              fetch.articles_of_type("american"))
+                              query.articles_of_type("american"))
 
     def test_articles_with_multiple_types(self):
-        articles = fetch.articles_with_multiple_types("american", "current president", op='and')
+        articles = query.articles_with_multiple_types("american", "current president", op='and')
         self.assertItemsEqual(["Barack Obama"], articles)
 
-        articles = fetch.articles_with_multiple_types("politician", "president", op='or')
+        articles = query.articles_with_multiple_types("politician", "president", op='or')
         self.assertItemsEqual(["Barack Obama", "Bill Clinton"], articles)
 
     def test_types_of_article(self):
         self.assertItemsEqual(
             ["politician", "american politician", "american"],
-            fetch.types_of_article("Bill Clinton"))
+            query.types_of_article("Bill Clinton"))
 
         self.assertItemsEqual(
             ["american", "president", "44th president", "current president"],
-            fetch.types_of_article("Barack Obama"))
+            query.types_of_article("Barack Obama"))
 
     def test_hypernyms_of_article_from_db(self):
         president_hypernyms = ['president', 'politician', 'person', 'agent', 'thing']
-        actual_hypernyms = fetch.hypernyms_of_article_from_db("Bill Clinton")
+        actual_hypernyms = query.hypernyms_of_article_from_db("Bill Clinton")
         self.assertItemsEqual(actual_hypernyms, president_hypernyms)
 
     @unittest.expectedFailure
     def test_articles_of_hypernym_from_db(self):
         # TODO: wrong hypernyms are being returned
         self.assertItemsEqual(['Bill Clinton', 'Barack Obama'],
-                              fetch.articles_of_hypernym_from_db('person'))
+                              query.articles_of_hypernym_from_db('person'))
 
     def test_classes_of_hypernym(self):
         self.assertItemsEqual(['president', 'officeholder'],
-                              fetch.classes_of_hypernym('person'))
+                              query.classes_of_hypernym('person'))
 
     def test_hypernyms_of_class_from_db(self):
         officeholder_hypernyms = ['officeholder', 'person', 'agent', 'thing']
-        self.assertItemsEqual(fetch.hypernyms_of_class_from_db("officeholder"),
+        self.assertItemsEqual(query.hypernyms_of_class_from_db("officeholder"),
                               officeholder_hypernyms)
 
 

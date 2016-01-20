@@ -1,4 +1,3 @@
-import re
 import sys
 
 from peewee import fn
@@ -6,10 +5,7 @@ from peewee import fn
 from wikithingsdb.create import get_hypernyms
 from wikithingsdb.models import Article, Type, WikiClass, DbpediaClass,\
     ArticleClass, ArticleType, Hypernym
-
-# -------
-# Queries
-# -------
+from wikithingsdb.util import add_camelcase, remove_camelcase
 
 
 def types_of_article(article, limit=sys.maxint):
@@ -67,7 +63,7 @@ def hypernyms_of_article_from_db(article, limit=sys.maxint):
                   Article.title == article,
               )
               .limit(limit))
-    return [_remove_camelcase(x.dbpedia_class) for x in result]
+    return [remove_camelcase(x.dbpedia_class) for x in result]
 
 
 def hypernyms_of_class(w_class):
@@ -78,7 +74,7 @@ def hypernyms_of_class(w_class):
     """
 
     result = get_hypernyms(w_class)
-    return [_remove_camelcase(x) for x in result]
+    return [remove_camelcase(x) for x in result]
 
 
 def hypernyms_of_class_from_db(w_class, limit=sys.maxint):
@@ -97,7 +93,7 @@ def hypernyms_of_class_from_db(w_class, limit=sys.maxint):
               .join(WikiClass)
               .where(WikiClass.class_name == w_class)
               .limit(limit))
-    return [_remove_camelcase(x.dbpedia_class) for x in result]
+    return [remove_camelcase(x.dbpedia_class) for x in result]
 
 
 def articles_of_type(given_type, limit=sys.maxint):
@@ -181,7 +177,7 @@ def articles_of_hypernym_from_db(hypernym, limit=sys.maxint):
     articles of that hypernym. Note: use 'thing' instead of
     'owl:Thing'.
     """
-    hypernym = _add_camelcase(hypernym)
+    hypernym = add_camelcase(hypernym)
     result = (Article
               .select()
               .join(ArticleClass)
@@ -198,7 +194,7 @@ def classes_of_hypernym(hypernym, limit=sys.maxint):
     infoboxes of that hypernym (list of strings with hyphens instead
     of spaces). Note: use 'thing' instead of 'owl:Thing'.
     """
-    hypernym = _add_camelcase(hypernym)
+    hypernym = add_camelcase(hypernym)
     result = (WikiClass
               .select()
               .join(Hypernym)
@@ -206,26 +202,3 @@ def classes_of_hypernym(hypernym, limit=sys.maxint):
               .where(DbpediaClass.dbpedia_class == hypernym)
               .limit(limit))
     return [x.class_name for x in result]
-
-# -------
-# Helpers
-# -------
-
-first_cap_re = re.compile('(.)([A-Z][a-z]+)')
-all_cap_re = re.compile('([a-z0-9])([A-Z])')
-
-
-def _remove_camelcase(name):
-    if name == "owl:Thing":
-        return "thing"
-    else:
-        s1 = first_cap_re.sub(r'\1 \2', name)
-        return all_cap_re.sub(r'\1 \2', s1).lower()
-
-
-def _add_camelcase(name):
-    title = name.title()
-    if title == "Thing":
-        return "owl:" + title
-    else:
-        return title.replace(' ', '')
