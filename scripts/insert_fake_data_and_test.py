@@ -6,10 +6,9 @@ Insert fake data into the DB and test relationships
 
 import unittest
 
-from wikithingsdb.dbutil import insert_batch
 from wikithingsdb import query
 from wikithingsdb.models import Article, Type, WikiClass, DbpediaClass, \
-    ArticleClass, ArticleType, Hypernym
+    ArticleClass, ArticleType, Hypernym, insert_batch
 
 
 def load_data():

@@ -20,6 +20,17 @@ db = PostgresqlExtRetryDatabase('wikithingsdb', user='wikithingsdb',
                                 register_hstore=False)
 
 # -------
+# Database connection
+# -------
+
+
+def insert_batch(model, batch):
+    db.connect()
+    with db.atomic():
+        model.insert_many(batch).execute()
+    db.close()
+
+# -------
 # Models
 # -------
 
