@@ -5,7 +5,8 @@ from peewee import fn
 from wikithingsdb.create import get_hypernyms
 from wikithingsdb.models import Article, Type, WikiClass, DbpediaClass,\
     ArticleClass, ArticleType, Hypernym
-from wikithingsdb.util import add_camelcase, remove_camelcase
+from wikithingsdb.util import to_wikipedia_class, to_dbpedia_class, \
+    from_dbpedia_class
 
 
 def types_of_article(article, limit=sys.maxint):
@@ -26,7 +27,7 @@ def types_of_article(article, limit=sys.maxint):
 
 def classes_of_article(article, limit=sys.maxint):
     """
-    Given a case-sensitive article title, return the infoboxes of
+    Given a case-sensitive article title, return the wikipedia classes of
     the article (as a list of strings).
     """
     result = (WikiClass
@@ -41,7 +42,7 @@ def classes_of_article(article, limit=sys.maxint):
 def hypernyms_of_article(article):
     """
     Given a case-sensitive article title, return a dictionary where
-    each key is an infobox of the article and its values are a list of
+    each key is a wikipedia class of the article and its values are a list of
     hypernyms (as a list of strings) from DBpedia's Ontology Classes.
     """
     return {w_class: hypernyms_of_class(w_class)
@@ -63,37 +64,36 @@ def hypernyms_of_article_from_db(article, limit=sys.maxint):
                   Article.title == article,
               )
               .limit(limit))
-    return [remove_camelcase(x.dbpedia_class) for x in result]
+    return [from_dbpedia_class(x.dbpedia_class) for x in result]
 
 
 def hypernyms_of_class(w_class):
     """
-    Given a lowercase infobox name (string with hyphens instead of
-    spaces), return a list of hypernyms (as a list of strings) from
-    DBpedia's Ontology Classes.
+    Given a wikipedia class, return a list of hypernyms (as a list of strings)
+    from DBpedia's Ontology Classes.
     """
 
     result = get_hypernyms(w_class)
-    return [remove_camelcase(x) for x in result]
+    return [from_dbpedia_class(x) for x in result]
 
 
 def hypernyms_of_class_from_db(w_class, limit=sys.maxint):
     """
-    Given a lowercase infobox name (string with hyphens instead of
-    spaces), return a list of hypernyms (as a list of strings) from
-    DBpedia's Ontology Classes.
+    Given a wikipedia class, return a list of hypernyms (as a list of strings)
+    from DBpedia's Ontology Classes.
 
     Deprecated: uses the database, resulting in slow, unordered
     results. Use hypernyms_of_class() instead.
     """
 
+    w_class = to_wikipedia_class(w_class)
     result = (DbpediaClass
               .select()
               .join(Hypernym)
               .join(WikiClass)
               .where(WikiClass.class_name == w_class)
               .limit(limit))
-    return [remove_camelcase(x.dbpedia_class) for x in result]
+    return [from_dbpedia_class(x.dbpedia_class) for x in result]
 
 
 def articles_of_type(given_type, limit=sys.maxint):
@@ -148,9 +148,9 @@ def articles_with_multiple_types(*types, **kwargs):
 
 def articles_of_class(w_class, limit=sys.maxint):
     """
-    Given a lowercase infobox name (string with hyphens instead of
-    spaces), return all articles of that type.
+    Given a wikipedia class, return all articles of that type.
     """
+    w_class = to_wikipedia_class(w_class)
     result = (Article
               .select()
               .join(ArticleClass)
@@ -162,10 +162,9 @@ def articles_of_class(w_class, limit=sys.maxint):
 
 def articles_of_hypernym(hypernym):
     """
-    Given a hypernym from DBpedia (string), return a dictionary
-    where each key is an infobox (string with hyphens instead of
-    spaces) of that hypernym and each value is a list of articles of
-    that infobox. Note: use 'thing' instead of 'owl:Thing'.
+    Given a hypernym from DBpedia (string), return a dictionary where each key
+    is a wikipedia class of that hypernym and each value is a list of articles
+    of that wikipedia class. Note: use 'thing' instead of 'owl:Thing'.
     """
     return {w_class: articles_of_class(w_class)
             for w_class in classes_of_hypernym(hypernym)}
@@ -177,7 +176,7 @@ def articles_of_hypernym_from_db(hypernym, limit=sys.maxint):
     articles of that hypernym. Note: use 'thing' instead of
     'owl:Thing'.
     """
-    hypernym = add_camelcase(hypernym)
+    hypernym = to_dbpedia_class(hypernym)
     result = (Article
               .select()
               .join(ArticleClass)
@@ -191,10 +190,10 @@ def articles_of_hypernym_from_db(hypernym, limit=sys.maxint):
 def classes_of_hypernym(hypernym, limit=sys.maxint):
     """
     Given a hypernym from DBpedia (string), return a list of
-    infoboxes of that hypernym (list of strings with hyphens instead
-    of spaces). Note: use 'thing' instead of 'owl:Thing'.
+    wikipedia classes of that hypernym. Note: use 'thing'
+    instead of 'owl:Thing'.
     """
-    hypernym = add_camelcase(hypernym)
+    hypernym = to_dbpedia_class(hypernym)
     result = (WikiClass
               .select()
               .join(Hypernym)

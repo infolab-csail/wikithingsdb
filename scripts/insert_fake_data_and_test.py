@@ -20,10 +20,10 @@ def load_data():
     ]
 
     test_classes = [
-        {'id': 1, 'class_name': "president"},
-        {'id': 2, 'class_name': "officeholder"},
-        {'id': 3, 'class_name': "french commune"},
-        {'id': 4, 'class_name': "city"},
+        {'id': 1, 'class_name': "wikipedia-president"},
+        {'id': 2, 'class_name': "wikipedia-officeholder"},
+        {'id': 3, 'class_name': "wikipedia-french-commune"},
+        {'id': 4, 'class_name': "wikipedia-city"},
     ]
 
     test_types = [
@@ -88,12 +88,16 @@ class TestRelationships(unittest.TestCase):
 
     def test_articles_of_class(self):
         self.assertItemsEqual(["Paris", "London"],
-                              query.articles_of_class("city"))
+                              query.articles_of_class("wikipedia-city"))
+
+        # we're flexible in not requiring 'wikipedia-'
+        self.assertItemsEqual(["Paris"],
+                              query.articles_of_class("french commune"))
 
     def test_classes_of_article(self):
-        self.assertItemsEqual(["president"],
+        self.assertItemsEqual(["wikipedia-president"],
                               query.classes_of_article("Bill Clinton"))
-        self.assertItemsEqual(["city", "french commune"],
+        self.assertItemsEqual(["wikipedia-city", "wikipedia-french-commune"],
                               query.classes_of_article("Paris"))
 
     def test_classes_of_article_with_limit(self):
@@ -131,12 +135,12 @@ class TestRelationships(unittest.TestCase):
                               query.articles_of_hypernym_from_db('person'))
 
     def test_classes_of_hypernym(self):
-        self.assertItemsEqual(['president', 'officeholder'],
+        self.assertItemsEqual(['wikipedia-president', 'wikipedia-officeholder'],
                               query.classes_of_hypernym('person'))
 
     def test_hypernyms_of_class_from_db(self):
         officeholder_hypernyms = ['officeholder', 'person', 'agent', 'thing']
-        self.assertItemsEqual(query.hypernyms_of_class_from_db("officeholder"),
+        self.assertItemsEqual(query.hypernyms_of_class_from_db("wikipedia-officeholder"),
                               officeholder_hypernyms)
 
 
