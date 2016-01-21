@@ -20,7 +20,7 @@ def time_query(f, symbol):
     print "{function}('{arg}')".format(function=f.__name__, arg=symbol)  # prints out the function name
     start = time.time()
     print f(symbol)
-    print " ... took: {how_much}".format(how_much = time.time() - start)
+    print " ... took: {how_much}".format(how_much=time.time() - start)
 
 
 def main():

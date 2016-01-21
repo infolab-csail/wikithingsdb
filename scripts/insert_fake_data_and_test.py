@@ -144,6 +144,12 @@ class TestRelationships(unittest.TestCase):
                               officeholder_hypernyms)
 
 
-if __name__ == '__main__':
+def main():
+    print "Inserting fake data into the DB .."
     load_data()
+    print "Running tests .."
     unittest.main()
+    print "Done"
+
+if __name__ == '__main__':
+    main()
