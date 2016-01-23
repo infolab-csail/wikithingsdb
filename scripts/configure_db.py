@@ -58,7 +58,7 @@ def create_database_and_role(name='wikithingsdb'):
 def create_tables():
     db.connect()
     db.create_tables([Article, Type, WikiClass, DbpediaClass,
-                      ArticleClass, ArticleType, Hypernym])
+                      ArticleClass, ArticleType, Hypernym], safe=True)
     print "Created tables"
 
 
