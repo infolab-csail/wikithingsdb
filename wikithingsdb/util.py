@@ -14,30 +14,30 @@ def add_camelcase(name):
     return title.replace(' ', '')
 
 
-def to_dbpedia_class(cls):
-    title = add_camelcase(cls)
+def to_dbpedia_class(dbpedia_class):
+    title = add_camelcase(dbpedia_class)
     if title == "Thing":
         return "owl:" + title
     else:
         return title.replace(' ', '')
 
 
-def from_dbpedia_class(cls):
-    if cls == "owl:Thing":
+def from_dbpedia_class(dbpedia_class):
+    if dbpedia_class == "owl:Thing":
         return "thing"
     else:
-        return remove_camelcase(cls)
+        return remove_camelcase(dbpedia_class)
 
 
-def is_wikipedia_class(cls):
-    return cls.startswith('wikipedia-') and ' ' not in cls
+def is_wikipedia_class(wiki_class):
+    return wiki_class.startswith('wikipedia-') and ' ' not in wiki_class
 
 
-def to_wikipedia_class(cls):
-    if is_wikipedia_class(cls):
-        return cls.lower()
-    return 'wikipedia-' + cls.lower().replace(' ', '-')
+def to_wikipedia_class(wiki_class):
+    if is_wikipedia_class(wiki_class):
+        return wiki_class.lower()
+    return 'wikipedia-' + wiki_class.lower().replace(' ', '-')
 
 
-def from_wikipedia_class(cls):
-    return cls.replace('wikipedia-', '')
+def from_wikipedia_class(wiki_class):
+    return wiki_class.replace('wikipedia-', '')
