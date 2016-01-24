@@ -24,7 +24,6 @@ setup(
         'requests',
         'defexpand',
         'beautifulsoup4',
-        'logging'
     ],
     dependency_links=[
         'git+https://github.com/infolab-csail/defexpand.git#egg=defexpand'
