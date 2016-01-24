@@ -16,8 +16,8 @@ setup(
         'wikithingsdb'
     ],
     install_requires=[
-        'SQLAlchemy',
-        'MySQL-python',
+        'peewee',
+        'psycopg2',
         'nltk',
         'unidecode',
         'lxml',
