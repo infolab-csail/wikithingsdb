@@ -1,69 +1,52 @@
-import logging
-from logging.handlers import RotatingFileHandler
-from flask import abort, Flask, request
-import json
-from wikithingsdb import fetch
+import traceback
+
+from flask import abort, Flask, request, jsonify
+
+from wikithingsdb import query, util
 
 app = Flask(__name__)
 
 
-@app.route("/types", methods=['GET'])
+@app.route("/types", methods=['GET', 'POST'])
 def get_types():
-    article = request.form.get('article', None)
-    methods = request.form.get('methods', None)
+    article = request.values.get('article', '').decode('utf-8')
+    methods = request.values.getlist('methods')
 
-    app.logger.debug("Recieved article [%s] and methods:", article)
-    app.logger.debug(methods)
-    
-    # TODO: uncomment when MySQL migration is done
+    if not article:
+        abort(400)
+
     response = {}
-    # for function in methods:
-    #     try:
-    #         # calls fetch.function(article)
-    #         returned = gettattr(fetch, function)(article)
-    #     except KeyError:
-    #         pass                # no such article in database
-    #     except RuntimeError as e:
-    #         # this should never happen, so log it
-    #         app.logger.exception(e)
-    #         app.logger.log("When error happened, called: {function}('{arg}')"\
-    #                        .format(function=function, arg=article))
-    #     else:
-    #         response[function] = returned
+    for function in methods:
+        try:
+            # calls query.function(article)
+            returned = getattr(query, function)(article)
+            response[function] = postprocess(returned, function)
+        except:
+            traceback.print_exc()
 
-    # for now, fake some data
-    # if article == "Brooklyn Bridge":
-    # if 'types_of_article' in methods:
-    response['types_of_article'] = ['bridge',\
-                                    'cable-stayed/suspension bridge',\
-                                    'hybrid cable-stayed/suspension bridge']
-    # if 'classes_of_article' in methods:
-    response['classes_of_article'] = ['nrhp', 'bridge']
-    # if 'hypernyms_of_article' in methods:
-    response['hypernyms_of_article'] = ['bridge',\
-                                        'route of transportation',\
-                                        'infrastructure',\
-                                        'architectural structure',\
-                                        'place',\
-                                        'thing',\
-                                        'building',\
-                                        'structure']
-    # if 'redirects_of_article' in methods:
-    # response['redirects_of_article'] = ['The Brooklyn Bridge',\
-    #                                     'Brooklyn bridge',\
-    #                                     'East River Bridge',\
-    #                                     "I've got a bridge to sell you"]
-    app.logger.debug("My response is:")
-    app.logger.debug(response)
-    
-    return json.dumps(response)
+    return jsonify(**response)
+
+
+def postprocess(result, function):
+    """
+    Clean up types for caller
+    """
+    if function == 'classes_of_article':
+        result = [util.from_wikipedia_class(c) for c in result]
+    elif function == 'hypernyms_of_article':
+        # flatten DBpedia hypernyms to a set
+        types = []
+        for dbpedia_classes in result.values():
+            types += dbpedia_classes
+        result = set(types)
+        if 'thing' in result:
+            # every entity has type owl:Thing
+            # remove it form the output because it is not informative
+            result.remove('thing')
+
+    # replace dashes with spaces
+    return [s.replace('-', ' ').lower().strip() for s in result]
 
 
 if __name__ == "__main__":
-    LOG_FILENAME = '/data/infolab/misc/elasticstart/log/wikithingsdb-server.log'
-    formatter = logging.Formatter("[%(levelname)s %(name)s %(funcName)s:%(lineno)d]\t\t%(message)s")
-    handler = RotatingFileHandler(LOG_FILENAME, maxBytes=10000000, backupCount=5)
-    handler.setFormatter(formatter)
-    app.logger.addHandler(handler)
-    logging.getLogger('wikithingsdb').addHandler(handler)
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=8056)
