@@ -33,7 +33,5 @@ class TestClassConversion(unittest.TestCase):
                          util.to_wikipedia_class('wikipedia-french-commune'))
 
     def test_from_wikipedia_class(self):
-        self.assertEqual('wikipedia-french-commune',
-                         util.to_wikipedia_class('french COmmune'))
-        self.assertEqual('wikipedia-french-commune',
-                         util.to_wikipedia_class('wikipedia-french-commune'))
+        self.assertEqual('french-commune',
+                         util.from_wikipedia_class('wikipedia-french-commune'))
