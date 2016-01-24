@@ -1,159 +1,98 @@
-#!/usr/bin/env python2
+from peewee import ForeignKeyField, IntegerField, Model, TextField
+from playhouse.postgres_ext import PostgresqlExtDatabase
+from playhouse.shortcuts import RetryOperationalError
 
-from wikithingsdb.engine import engine
-from sqlalchemy import ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String
-from sqlalchemy import Table
-from sqlalchemy.dialects import mysql
-from sqlalchemy.orm import mapper
-
-Base = declarative_base()
+# -------
+# Database connection
+# -------
 
 
-article_classes = Table(
-    'article_classes',
-    Base.metadata,
-    Column('a_id', mysql.INTEGER(8, unsigned=True), ForeignKey('page.page_id'),
-           primary_key=True),
-    Column('c_id', Integer, ForeignKey('classes.id'), primary_key=True),
-)
+class PostgresqlExtRetryDatabase(RetryOperationalError, PostgresqlExtDatabase):
+
+    """
+    Automatically reconnect to the database and retry any queries that fail
+    with an OperationalError
+    """
+    pass
 
 
-article_types = Table(
-    'article_types',
-    Base.metadata,
-    Column('a_id', mysql.INTEGER(8, unsigned=True), ForeignKey('page.page_id'),
-           primary_key=True),
-    Column('t_id', Integer, ForeignKey('types.id'), primary_key=True),
-)
+db = PostgresqlExtRetryDatabase('wikithingsdb', user='wikithingsdb',
+                                register_hstore=False)
+
+# -------
+# Database connection
+# -------
 
 
-hypernyms = Table(
-    'hypernyms',
-    Base.metadata,
-    Column('c_id', Integer, ForeignKey('classes.id'), primary_key=True),
-    Column('d_id', Integer, ForeignKey('dbpedia_classes.id'), primary_key=True),
-)
+def insert_batch(model, batch):
+    db.connect()
+    with db.atomic():
+        model.insert_many(batch).execute()
+    db.close()
+
+# -------
+# Models
+# -------
 
 
-class ArticleClass(object):
+class Article(Model):
+    id = IntegerField(primary_key=True)
+    title = TextField(index=True)
 
-    def __init__(self, a_id, c_id):
-        self.a_id = a_id
-        self.c_id = c_id
-
-
-class ArticleType(object):
-
-    def __init__(self, a_id, t_id):
-        self.a_id = a_id
-        self.t_id = t_id
+    class Meta:
+        database = db
+        db_table = 'articles'
 
 
-class Hypernym(object):
+class Type(Model):
+    id = IntegerField(primary_key=True)
+    type = TextField(index=True, unique=True)
 
-    def __init__(self, c_id, d_id):
-        self.c_id = c_id
-        self.d_id = d_id
-
-
-mapper(ArticleClass, article_classes)
-mapper(ArticleType, article_types)
-mapper(Hypernym, hypernyms)
+    class Meta:
+        database = db
+        db_table = 'types'
 
 
-class Page(Base):
-    __tablename__ = "page"
-    page_id = Column(mysql.INTEGER(8, unsigned=True), primary_key=True)
-    page_namespace = Column(mysql.INTEGER(11))
-    page_title = Column(mysql.VARBINARY(255))
-    page_restrictions = Column(mysql.TINYBLOB)
-    page_counter = Column(mysql.BIGINT(20, unsigned=True))
-    page_is_redirect = Column(mysql.TINYINT(1, unsigned=True))
-    page_is_new = Column(mysql.TINYINT(1, unsigned=True))
-    page_random = Column(mysql.DOUBLE(unsigned=True))
-    page_touched = Column(mysql.VARBINARY(14))
-    page_links_updated = Column(mysql.VARBINARY(14))
-    page_latest = Column(mysql.INTEGER(8, unsigned=True))
-    page_len = Column(mysql.INTEGER(8, unsigned=True))
-    page_content_model = Column(mysql.VARBINARY(32))
+class WikiClass(Model):
+    id = IntegerField(primary_key=True)
+    class_name = TextField(index=True, unique=True)
 
-    classes = relationship(
-        'WikiClass', secondary=article_classes, backref='page')
-
-    types = relationship(
-        'Type', secondary=article_types, backref='page')
-
-    def __init__(self, title):
-        self.page_title = title
-
-    def __repr__(self):
-        return '<Page: %s>' % self.page_title
+    class Meta:
+        database = db
+        db_table = 'classes'
 
 
-class Redirect(Base):
-    __tablename__ = "redirect"
-    rd_from = Column(mysql.INTEGER(8, unsigned=True), primary_key=True)
-    rd_namespace = Column(mysql.INTEGER(11))
-    rd_title = Column(mysql.VARBINARY(255))
-    rd_interwiki = Column(mysql.VARBINARY(32))
-    rd_fragment = Column(mysql.VARBINARY(255))
+class DbpediaClass(Model):
+    id = IntegerField(primary_key=True)
+    dbpedia_class = TextField(index=True, unique=True)
 
-    page = relationship(
-        'Page',
-        primaryjoin='Redirect.rd_from==Page.page_id',
-        foreign_keys='Redirect.rd_from'
-    )
-
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        return '<Redirect: %s>' % str(self.rd_title)
+    class Meta:
+        database = db
+        db_table = 'dbpedia_classes'
 
 
-class Type(Base):
-    __tablename__ = "types"
+class ArticleClass(Model):
+    a_id = ForeignKeyField(Article)
+    c_id = ForeignKeyField(WikiClass)
 
-    id = Column(Integer, primary_key=True)
-    type = Column(String(100), unique=True, index=True)
-
-    def __init__(self, type):
-        self.type = type
-
-    def __repr__(self):
-        return '<Type: %s>' % self.type
+    class Meta:
+        database = db
+        db_table = 'article_classes'
 
 
-class WikiClass(Base):
-    __tablename__ = "classes"
+class ArticleType(Model):
+    a_id = ForeignKeyField(Article)
+    t_id = ForeignKeyField(Type)
 
-    id = Column(Integer, primary_key=True)
-    class_name = Column(String(100), unique=True, index=True)
-
-    dbpedia_classes = relationship(
-        'DbpediaClass', secondary=hypernyms, backref='classes')
-
-    def __init__(self, class_name):
-        self.class_name = class_name
-
-    def __repr__(self):
-        return '<WikiClass: %s>' % self.class_name
+    class Meta:
+        database = db
+        db_table = 'article_types'
 
 
-class DbpediaClass(Base):
-    __tablename__ = "dbpedia_classes"
+class Hypernym(Model):
+    c_id = ForeignKeyField(WikiClass)
+    d_id = ForeignKeyField(DbpediaClass)
 
-    id = Column(Integer, primary_key=True)
-    dpedia_class = Column(String(100), unique=True, index=True)
-
-    def __init__(self, dpedia_class):
-        self.dpedia_class = dpedia_class
-
-    def __repr__(self):
-        return '<DbpediaClass: %s>' % self.dpedia_class
-
-
-Base.metadata.create_all(engine)
+    class Meta:
+        database = db
+        db_table = 'hypernyms'
