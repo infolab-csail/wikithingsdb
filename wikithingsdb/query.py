@@ -146,17 +146,27 @@ def articles_with_multiple_types(*types, **kwargs):
     return [x.title for x in result]
 
 
-def articles_of_class(w_class, limit=sys.maxint):
+def articles_of_class(w_class, limit=sys.maxint, random=False):
     """
     Given a wikipedia class, return all articles of that type.
+    Set random=True to get random articles from the database (slower)
     """
     w_class = to_wikipedia_class(w_class)
-    result = (Article
-              .select()
-              .join(ArticleClass)
-              .join(WikiClass)
-              .where(WikiClass.class_name == w_class)
-              .limit(limit))
+    if random:
+        result = (Article
+                  .select()
+                  .join(ArticleClass)
+                  .join(WikiClass)
+                  .where(WikiClass.class_name == w_class)
+                  .order_by(fn.Random())
+                  .limit(limit))
+    else:
+        result = (Article
+                  .select()
+                  .join(ArticleClass)
+                  .join(WikiClass)
+                  .where(WikiClass.class_name == w_class)
+                  .limit(limit))
     return [x.title for x in result]
 
 
