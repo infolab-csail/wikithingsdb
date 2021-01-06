@@ -5,14 +5,12 @@ python:
 services:
 - postgresql
 before_install:
-- pip install codecov pep8
+- pip install pep8
 install:
 - pip install -r requirements.txt
 - python setup.py install
 - scripts/configure_db.py
 script:
 - python scripts/insert_fake_data_and_test.py
-- coverage run setup.py test
+- python setup.py test
 - pep8 wikithingsdb tests scripts --ignore=E501
-after_success:
-- codecov

@@ -1,8 +1,5 @@
 # WikiThingsDB
 [![Build Status](https://travis-ci.org/infolab-csail/wikithingsdb.svg?branch=master)](https://travis-ci.org/infolab-csail/wikithingsdb)
-[![Code Issues](https://www.quantifiedcode.com/api/v1/project/7a3c7f1330e74b1fad21206f454a212c/badge.svg)](https://www.quantifiedcode.com/app/project/7a3c7f1330e74b1fad21206f454a212c)
-[![Stories in Ready](https://badge.waffle.io/infolab-csail/wikithingsdb.png?label=ready&title=Ready)](https://waffle.io/infolab-csail/wikithingsdb)
-[![codecov.io](https://codecov.io/github/infolab-csail/wikithingsdb/coverage.svg?branch=master)](https://codecov.io/github/infolab-csail/wikithingsdb?branch=master)
 
 A DB of Synonyms, Paraphrases, and Hypernyms for all Wiki Things (Articles)
 
