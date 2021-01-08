@@ -3,7 +3,7 @@ Flask==0.10.1
 Unidecode==0.4.18
 beautifulsoup4==4.4.1
 dewiki==0.1.0
-lxml==3.5.0
+lxml==4.6.2
 mwparserfromhell==0.4.3
 nltk==3.1
 peewee==2.8.0
