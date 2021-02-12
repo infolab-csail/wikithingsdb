@@ -1,2 +1,0 @@
-[run]
-omit = *virtualenv*, *pypy*, *setup.py, */tests/*, */scripts/*
