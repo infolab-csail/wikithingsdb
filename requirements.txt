@@ -8,5 +8,5 @@ mwparserfromhell==0.4.3
 nltk==3.9
 peewee==2.8.0
 psycopg2==2.6.1
-requests==2.32.0
+requests==2.32.4
 wheel==0.38.1
